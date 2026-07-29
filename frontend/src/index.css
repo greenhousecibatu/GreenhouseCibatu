@@ -1,0 +1,303 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =============================================
+   AgriLog - Shared Styles (React)
+   ============================================= */
+
+body {
+  font-family: 'Manrope', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: contain;
+  background-color: #f8f9fa;
+  color: #191c1d;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  display: inline-block;
+  vertical-align: middle;
+  user-select: none;
+}
+
+/* ---- Active Glow (Solenoid Cards) ---- */
+.active-glow {
+  box-shadow: 0 0 20px rgba(15, 82, 56, 0.25);
+}
+
+/* ---- Glass Header ---- */
+.glass-header {
+  background: rgba(248, 249, 250, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* ---- Custom Toggle Switch ---- */
+.toggle-track {
+  width: 52px;
+  height: 32px;
+  border-radius: 16px;
+  background: #e1e3e4;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  flex-shrink: 0;
+}
+.toggle-track.on {
+  background: #0f5238;
+}
+.toggle-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.toggle-track.on .toggle-thumb {
+  transform: translateX(20px);
+}
+
+/* Small toggle variant */
+.toggle-track.sm {
+  width: 42px;
+  height: 26px;
+}
+.toggle-track.sm .toggle-thumb {
+  width: 20px;
+  height: 20px;
+  top: 3px;
+  left: 3px;
+}
+.toggle-track.sm.on .toggle-thumb {
+  transform: translateX(16px);
+}
+
+/* ---- Range Slider ---- */
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  width: 100%;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 6px;
+  background: linear-gradient(to right, #0f5238 var(--val, 14%), #e1e3e4 var(--val, 14%));
+  border-radius: 3px;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 22px;
+  width: 22px;
+  border-radius: 50%;
+  background: #0f5238;
+  cursor: pointer;
+  margin-top: -8px;
+  box-shadow: 0 2px 8px rgba(15, 82, 56, 0.35);
+  transition: transform 0.15s ease;
+}
+input[type=range]::-webkit-slider-thumb:active {
+  transform: scale(1.2);
+}
+
+/* ---- Scrollbar ---- */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #bfc9c1;
+  border-radius: 10px;
+}
+
+/* ---- Day Chip ---- */
+.day-chip {
+  transition: all 0.2s ease;
+}
+.day-chip.selected {
+  background: #0f5238 !important;
+  color: #fff !important;
+  border-color: #0f5238 !important;
+}
+.day-chip.selected-secondary {
+  background: #2b4cda !important;
+  color: #fff !important;
+  border-color: #2b4cda !important;
+}
+
+/* ---- Notification Badge ---- */
+.notif-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background: #ba1a1a;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  line-height: 1;
+}
+.notif-badge::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 11px;
+  border: 2px solid #ba1a1a;
+  animation: pulse-ring 1.2s ease-out infinite;
+  pointer-events: none;
+}
+
+/* ---- Notification Drawer ---- */
+.notif-drawer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+  opacity: 0;
+}
+.notif-drawer.open {
+  max-height: 500px;
+  opacity: 1;
+}
+
+/* ---- Color Strips ---- */
+.strip-green  { border-left: 4px solid #0f5238; }
+.strip-blue   { border-left: 4px solid #2b4cda; }
+.strip-red    { border-left: 4px solid #ba1a1a; }
+.strip-gray   { border-left: 4px solid #bfc9c1; }
+
+/* ---- Filter Chips ---- */
+.filter-chip {
+  transition: all 0.2s ease;
+}
+.filter-chip.active {
+  background: #0f5238;
+  color: #fff;
+  border-color: #0f5238;
+}
+
+/* ---- Context Menu ---- */
+.context-menu {
+  position: absolute;
+  right: 8px;
+  top: 40px;
+  z-index: 30;
+  opacity: 0;
+  transform: scale(0.9) translateY(-4px);
+  transition: all 0.15s ease;
+  pointer-events: none;
+}
+.context-menu.show {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+}
+
+/* ---- Modal ---- */
+.modal-overlay {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+.modal-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+.modal-content {
+  transform: translateY(40px) scale(0.95);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.modal-overlay.show .modal-content {
+  transform: translateY(0) scale(1);
+}
+
+/* ---- Toast ---- */
+.toast-container {
+  position: fixed;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  width: calc(100% - 40px);
+  max-width: 400px;
+  pointer-events: none;
+}
+.toast-item {
+  pointer-events: auto;
+}
+
+/* ---- Status Indicators ---- */
+.status-success { color: #1b873e; }
+.status-failed  { color: #ba1a1a; }
+.status-pending { color: #707973; }
+
+/* ---- Empty State Icon ---- */
+.empty-state-icon {
+  font-size: 64px;
+  color: #bfc9c1;
+}
+
+/* ---- Safe Area Padding ---- */
+.pb-safe {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+/* ---- Schedule Card ---- */
+.schedule-card {
+  transition: all 0.2s ease;
+}
+.schedule-card:active {
+  transform: scale(0.98);
+}
+
+/* ---- Valve Type Button ---- */
+.valve-type-btn {
+  transition: all 0.2s ease;
+}
+
+/* ---- Animations ---- */
+@keyframes fade-in {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes toast-in {
+  0% { transform: translateY(-120%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+@keyframes toast-out {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-120%); opacity: 0; }
+}
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.35s ease-out both;
+}
+.animate-toast-in {
+  animation: toast-in 0.4s cubic-bezier(0.22,1,0.36,1);
+}
+.animate-toast-out {
+  animation: toast-out 0.3s ease-in forwards;
+}
+
+/* ---- Bottom Nav Active Styles ---- */
+.nav-item.active {
+  background: #2d6a4f;
+  color: #a8e7c5;
+  border-radius: 9999px;
+}
+.nav-item:not(.active) {
+  color: #404943;
+}
