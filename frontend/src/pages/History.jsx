@@ -54,7 +54,7 @@ export default function History() {
     ];
 
     return (
-        <div className="space-y-lg">
+        <div id="tour-history-page" className="space-y-lg">
             {/* Header */}
             <div>
                 <p className="font-label-caps text-label-caps text-outline uppercase tracking-widest mb-1">Pelacak Aktivitas</p>
@@ -62,7 +62,7 @@ export default function History() {
             </div>
 
             {/* Filter Chips */}
-            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 custom-scrollbar">
+            <div id="tour-history-filters" className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 custom-scrollbar">
                 {filters.map(filter => {
                     const isActive = currentFilter === filter.id;
                     return (

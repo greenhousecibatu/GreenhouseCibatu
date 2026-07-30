@@ -8,6 +8,7 @@ import Schedules from './pages/Schedules';
 import History from './pages/History';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
+import TourGuide from './components/TourGuide';
 
 function App() {
     const { currentPage } = useApp();
@@ -42,6 +43,15 @@ function App() {
     const handleLogin = (newToken) => {
         setToken(newToken);
     };
+
+    // Request Notification permission once token is set
+    useEffect(() => {
+        if (token && 'Notification' in window) {
+            if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+                Notification.requestPermission();
+            }
+        }
+    }, [token]);
 
     const handleLogout = () => {
         localStorage.removeItem('gh_token');
@@ -90,6 +100,7 @@ function App() {
                 {renderActivePage()}
             </main>
             <BottomNav />
+            <TourGuide />
         </div>
     );
 }

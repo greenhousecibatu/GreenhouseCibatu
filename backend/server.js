@@ -9,6 +9,7 @@ const path = require('path');
 const db = require('./config/db');
 const apiRoutes = require('./routes/api');
 const WeatherModel = require('./models/weatherModel');
+const HistoryModel = require('./models/historyModel');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,31 +34,18 @@ app.get('*', (req, res) => {
     });
 });
 
-// Fetch weather from Open-Meteo API
-async function fetchWeather() {
+
+// Auto-cleanup history older than 30 days
+async function cleanupHistory() {
     try {
-        // Test connection first
-        const conn = await db.getConnection();
-        conn.release();
-
-        console.log('☁️ Fetching live weather for Cibatu, Garut (-7.1036087, 107.9876662)...');
-        const response = await fetch(
-            'https://api.open-meteo.com/v1/forecast?latitude=-7.1036087&longitude=107.9876662&current=temperature_2m,relative_humidity_2m'
-        );
-
-        if (!response.ok) {
-            throw new Error(`Open-Meteo API responded with status ${response.status}`);
+        const deletedCount = await HistoryModel.deleteOldRecords();
+        if (deletedCount > 0) {
+            console.log(`🧹 History cleanup: Deleted ${deletedCount} old records (older than 30 days).`);
+        } else {
+            console.log(`🧹 History cleanup: No old records to delete.`);
         }
-
-        const data = await response.json();
-        const temp = data.current.temperature_2m;
-        const hum = data.current.relative_humidity_2m;
-
-        console.log(`📊 Current weather: ${temp}°C, Humidity: ${hum}%`);
-        await WeatherModel.saveReading(temp, hum);
-        console.log('✅ Weather reading saved to database.');
     } catch (err) {
-        console.error('⚠️ Weather fetch/save failed:', err.message);
+        console.error('⚠️ History cleanup failed:', err.message);
     }
 }
 
@@ -92,10 +80,10 @@ app.listen(PORT, async () => {
     console.log('');
     const dbOk = await testConnection();
     if (dbOk) {
-        // Fetch weather immediately on start
-        await fetchWeather();
-        // Schedule every 10 minutes (600000ms)
-        setInterval(fetchWeather, 600000);
+        // Run history cleanup immediately on start
+        await cleanupHistory();
+        // Schedule cleanup every 24 hours (86400000ms)
+        setInterval(cleanupHistory, 86400000);
     }
     console.log('   ==========================================');
 });

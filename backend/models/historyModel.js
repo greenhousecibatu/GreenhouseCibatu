@@ -27,6 +27,12 @@ const HistoryModel = {
         );
         const [rows] = await db.query('SELECT * FROM history WHERE id = ?', [result.insertId]);
         return rows[0];
+    },
+
+    deleteOldRecords: async () => {
+        // Hapus data riwayat yang lebih lama dari 30 hari
+        const [result] = await db.query('DELETE FROM history WHERE created_at < NOW() - INTERVAL 30 DAY');
+        return result.affectedRows;
     }
 };
 

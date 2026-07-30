@@ -13,6 +13,27 @@ export const AppProvider = ({ children }) => {
     const [isNotifOpen, setIsNotifOpen] = useState(false);
     const [weather, setWeather] = useState({ temperature: 24.0, humidity: 68.0 });
     const [timers, setTimers] = useState({});
+    const [deferredPrompt, setDeferredPrompt] = useState(null);
+    const [isTourActive, setIsTourActive] = useState(false);
+
+    // ---- PWA Install Listener ----
+    useEffect(() => {
+        const handleBeforeInstallPrompt = (e) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        };
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    }, []);
+
+    const installPwa = async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            setDeferredPrompt(null);
+        }
+    };
 
     // ---- Auth fetch helper ----
     const authFetch = useCallback((url, options = {}) => {
@@ -48,6 +69,22 @@ export const AppProvider = ({ children }) => {
     const showToast = useCallback((icon, message, type = 'neutral') => {
         const id = Date.now();
         setToasts(prev => [...prev, { id, icon, message, type }]);
+
+        // ---- Push Notification Integration ----
+        if (type === 'success' || type === 'error') {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                const title = type === 'success' ? 'Aktivitas Selesai' : 'Peringatan';
+                navigator.serviceWorker?.ready.then(registration => {
+                    registration.showNotification(title, {
+                        body: message,
+                        vibrate: [200, 100, 200]
+                    });
+                }).catch(() => {
+                    new Notification(title, { body: message });
+                });
+            }
+        }
+
         setTimeout(() => {
             setToasts(prev => prev.filter(t => t.id !== id));
         }, 3000);
@@ -411,7 +448,11 @@ export const AppProvider = ({ children }) => {
             markNotifRead,
             dismissNotif,
             clearSemuaNotifications,
-            authFetch
+            authFetch,
+            deferredPrompt,
+            installPwa,
+            isTourActive,
+            setIsTourActive
         }}>
             {children}
         </AppContext.Provider>

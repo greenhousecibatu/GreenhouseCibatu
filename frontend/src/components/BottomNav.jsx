@@ -19,6 +19,7 @@ export default function BottomNav() {
                     return (
                         <button
                             key={item.id}
+                            id={item.id === 'schedules' ? 'tour-nav-schedules' : item.id === 'history' ? 'tour-nav-history' : undefined}
                             onClick={() => setCurrentPage(item.id)}
                             className={`nav-item flex flex-col items-center justify-center rounded-full px-4 py-1.5 transition-all duration-200 active:scale-90 ${isActive ? 'active' : ''}`}
                         >

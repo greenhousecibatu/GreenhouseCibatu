@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 
 export default function Dashboard() {
-    const { solenoids, setManualMode, history, setCurrentPage, weather } = useApp();
+    const { solenoids, setManualMode, history, setCurrentPage, weather, deferredPrompt, installPwa } = useApp();
     const [confirmMode, setConfirmMode] = useState(null);
 
     const handleModeClick = (mode) => {
@@ -25,8 +25,26 @@ export default function Dashboard() {
     return (
         <div className="space-y-6">
 
-
-
+            {/* PWA Install Banner */}
+            {deferredPrompt && (
+                <div className="bg-primary-container text-on-primary-container rounded-2xl p-4 shadow-md flex items-center justify-between border border-primary/20 animate-fade-in">
+                    <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-white/25 flex items-center justify-center shadow-sm">
+                            <span className="material-symbols-outlined text-white" style={{ fontSize: '28px', fontVariationSettings: "'FILL' 1" }}>get_app</span>
+                        </div>
+                        <div>
+                            <h3 className="font-title-sm text-title-sm font-bold">Install Aplikasi</h3>
+                            <p className="font-body-sm text-body-sm opacity-90">Akses lebih cepat & praktis</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={installPwa}
+                        className="bg-primary text-on-primary px-4 py-2 rounded-full font-label-bold text-label-bold hover:shadow-lg transition-all active:scale-95"
+                    >
+                        Install
+                    </button>
+                </div>
+            )}
             {/* Solenoid Controls */}
             <div className="space-y-card-gap">
                 <h2 className="font-title-md text-title-md text-on-surface px-1">Kontrol Manual</h2>
@@ -36,7 +54,7 @@ export default function Dashboard() {
                     const currentMode = activeSolenoid ? activeSolenoid.type : 'off';
 
                     return (
-                        <div className="bg-surface-container-lowest rounded-xl p-4 shadow-sm border border-outline-variant/20 space-y-4">
+                        <div id="tour-manual-control" className="bg-surface-container-lowest rounded-xl p-4 shadow-sm border border-outline-variant/20 space-y-4">
                             <div className="flex items-center gap-4">
                                 <div className={`w-14 h-14 rounded-full flex items-center justify-center ${currentMode === 'water' ? 'bg-primary-fixed text-primary-container' : currentMode === 'fertilizer' ? 'bg-secondary-fixed text-secondary' : 'bg-surface-variant text-on-surface-variant'}`}>
                                     <span className="material-symbols-outlined scale-125" style={{ fontVariationSettings: "'FILL' 1" }}>

@@ -2,7 +2,7 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 
 export default function Settings({ onLogout }) {
-    const { showToast, refreshSemua, authFetch } = useApp();
+    const { showToast, refreshSemua, authFetch, setIsTourActive, setCurrentPage } = useApp();
 
     const exportData = async () => {
         try {
@@ -56,29 +56,6 @@ export default function Settings({ onLogout }) {
             <div>
                 <p className="font-label-caps text-label-caps text-outline uppercase tracking-widest mb-1">Preferensi</p>
                 <h1 className="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Pengaturan</h1>
-            </div>
-
-            {/* Zone Info */}
-            <div className="bg-surface-container-lowest rounded-xl p-lg shadow-sm border border-outline-variant/20">
-                <div className="flex items-center gap-4 mb-md">
-                    <div className="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center">
-                        <span className="material-symbols-outlined text-primary-container" style={{ fontVariationSettings: "'FILL' 1" }}>house</span>
-                    </div>
-                    <div>
-                        <h3 className="font-title-md text-title-md text-on-surface">Greenhouse Tropis</h3>
-                        <p className="font-body-sm text-body-sm text-on-surface-variant">Zona 04 • 2 Solenoid</p>
-                    </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2 mt-md">
-                    <div className="bg-surface-container-low rounded-lg p-3 text-center">
-                        <p className="font-label-caps text-label-caps text-outline uppercase">Luas Area</p>
-                        <p className="font-title-md text-title-md text-on-surface mt-1">120 m²</p>
-                    </div>
-                    <div className="bg-surface-container-low rounded-lg p-3 text-center">
-                        <p className="font-label-caps text-label-caps text-outline uppercase">Tanaman</p>
-                        <p className="font-title-md text-title-md text-on-surface mt-1">48 pot</p>
-                    </div>
-                </div>
             </div>
 
             {/* Notification Preferences */}
@@ -137,11 +114,24 @@ export default function Settings({ onLogout }) {
                     </button>
                     <button
                         onClick={clearSemuaData}
-                        className="flex items-center justify-between p-md px-lg w-full hover:bg-surface-container-low transition-colors"
+                        className="flex items-center justify-between p-md px-lg w-full hover:bg-surface-container-low transition-colors border-b border-outline-variant/20"
                     >
                         <div className="flex items-center gap-3">
                             <span className="material-symbols-outlined text-error">delete_sweep</span>
                             <span className="font-body-sm text-body-sm text-error">Hapus Semua Notifikasi</span>
+                        </div>
+                        <span className="material-symbols-outlined text-outline text-base">chevron_right</span>
+                    </button>
+                    <button
+                        onClick={() => {
+                            setCurrentPage('dashboard');
+                            setIsTourActive(true);
+                        }}
+                        className="flex items-center justify-between p-md px-lg w-full hover:bg-surface-container-low transition-colors"
+                    >
+                        <div className="flex items-center gap-3">
+                            <span className="material-symbols-outlined text-secondary">explore</span>
+                            <span className="font-body-sm text-body-sm text-on-surface">Mulai Panduan Aplikasi</span>
                         </div>
                         <span className="material-symbols-outlined text-outline text-base">chevron_right</span>
                     </button>

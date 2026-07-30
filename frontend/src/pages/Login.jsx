@@ -22,6 +22,10 @@ export default function Login({ onLogin }) {
 
             if (res.ok) {
                 localStorage.setItem('gh_token', data.token);
+                // Request Notification Permission
+                if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+                    Notification.requestPermission();
+                }
                 onLogin(data.token);
             } else {
                 setError(data.error || 'Password salah');

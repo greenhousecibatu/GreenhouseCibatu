@@ -35,7 +35,7 @@ export default function Schedules() {
     const intervalSchedules = schedules.filter(s => s.method === 'interval');
 
     return (
-        <div className="space-y-lg pb-24">
+        <div id="tour-schedules-page" className="space-y-lg pb-24">
             {/* Header */}
             <div className="flex justify-between items-end">
                 <div>
@@ -45,7 +45,7 @@ export default function Schedules() {
             </div>
 
             {/* Top Tabs */}
-            <div className="flex bg-surface-container-low rounded-xl p-1.5 shadow-sm">
+            <div id="tour-schedules-tabs" className="flex bg-surface-container-low rounded-xl p-1.5 shadow-sm">
                 <button 
                     className={`flex-1 py-3 font-label-bold text-center rounded-lg transition-colors ${activeTab === 'alarm' ? 'bg-primary text-white shadow-md' : 'text-on-surface hover:bg-surface-variant/50'}`}
                     onClick={() => setActiveTab('alarm')}
@@ -156,7 +156,7 @@ function AlarmTab({ schedules, onCreate, onUpdate, onDelete, onToggle, showToast
     return (
         <div className="space-y-6">
             {!isCreating && (
-                <button onClick={() => setIsCreating(true)} className="w-full py-4 border-2 border-dashed border-primary/50 text-primary font-title-md rounded-2xl hover:bg-primary/5 flex items-center justify-center gap-2">
+                <button id="tour-schedules-add" onClick={() => setIsCreating(true)} className="w-full py-4 border-2 border-dashed border-primary/50 text-primary font-title-md rounded-2xl hover:bg-primary/5 flex items-center justify-center gap-2">
                     <span className="material-symbols-outlined">add</span> Tambah Alarm
                 </button>
             )}
@@ -203,8 +203,10 @@ function AlarmTab({ schedules, onCreate, onUpdate, onDelete, onToggle, showToast
             )}
 
             <div className="space-y-4">
-                {schedules.map(s => (
-                    <StandardCard key={s.id} schedule={s} onToggle={onToggle} onDelete={onDelete} onEdit={() => handleEdit(s)} />
+                {schedules.map((s, idx) => (
+                    <div key={s.id} id={idx === 0 ? "tour-schedules-card" : undefined}>
+                        <StandardCard schedule={s} onToggle={onToggle} onDelete={onDelete} onEdit={() => handleEdit(s)} />
+                    </div>
                 ))}
             </div>
         </div>
