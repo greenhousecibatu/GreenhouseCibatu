@@ -11,10 +11,7 @@ const connectDB = async () => {
         const uri = process.env.MONGODB_URI || process.env.MONGODB_URL;
         if (!uri) throw new Error("MongoDB connection string is missing");
 
-        await mongoose.connect(uri, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true
-        });
+        await mongoose.connect(uri);
         console.log('✅ MongoDB Atlas connected successfully');
     } catch (err) {
         console.error('❌ MongoDB Connection Error:', err.message);
