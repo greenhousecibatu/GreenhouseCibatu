@@ -14,6 +14,16 @@ const HistoryController = {
             console.error(err);
             res.status(500).json({ error: 'Failed to fetch history log' });
         }
+    },
+    
+    clearAll: async (req, res) => {
+        try {
+            const count = await HistoryModel.deleteAll();
+            res.json({ message: `Deleted ${count} history records` });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ error: 'Failed to clear history log' });
+        }
     }
 };
 

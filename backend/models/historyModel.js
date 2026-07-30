@@ -33,6 +33,11 @@ const HistoryModel = {
         // Hapus data riwayat yang lebih lama dari 30 hari
         const [result] = await db.query('DELETE FROM history WHERE created_at < NOW() - INTERVAL 30 DAY');
         return result.affectedRows;
+    },
+
+    deleteAll: async () => {
+        const [result] = await db.query('DELETE FROM history');
+        return result.affectedRows;
     }
 };
 

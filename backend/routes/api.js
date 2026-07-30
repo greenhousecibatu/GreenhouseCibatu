@@ -36,6 +36,7 @@ router.put('/schedules/:id/toggle', authMiddleware, ScheduleController.toggleEna
 
 // History
 router.get('/history', authMiddleware, HistoryController.getFiltered);
+router.delete('/history', authMiddleware, HistoryController.clearAll);
 
 // Notifications
 router.get('/notifications', authMiddleware, NotificationController.getAll);

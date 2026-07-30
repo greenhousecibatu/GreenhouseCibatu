@@ -6,37 +6,57 @@ export default function Settings({ onLogout }) {
 
     const exportData = async () => {
         try {
-            const [schedulesRes, historyRes] = await Promise.all([
-                authFetch('/api/schedules'),
-                authFetch('/api/history?filter=all')
-            ]);
+            const historyRes = await authFetch('/api/history?filter=all');
             
-            if (schedulesRes.ok && historyRes.ok) {
-                const schedules = await schedulesRes.json();
+            if (historyRes.ok) {
                 const history = await historyRes.json();
                 
-                const data = { schedules, history, exportedAt: new Date().toISOString() };
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                if (history.length === 0) {
+                    return showToast('info', 'Tidak ada data riwayat untuk diekspor', 'neutral');
+                }
+
+                // Buat Header CSV
+                let csvContent = "Waktu,Tipe,Aksi,Detail,Durasi,Status\n";
+                
+                // Isi Data CSV
+                history.forEach(row => {
+                    const date = new Date(row.created_at).toLocaleString('id-ID').replace(/,/g, '');
+                    const type = row.type || '';
+                    const action = row.action || '';
+                    const detail = row.detail || '';
+                    const duration = row.duration || '';
+                    const status = row.status || '';
+                    
+                    csvContent += `"${date}","${type}","${action}","${detail}","${duration}","${status}"\n`;
+                });
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `greenhouse_cibatu_export_${new Date().toISOString().split('T')[0]}.json`;
+                a.download = `riwayat_aktivitas_${new Date().toISOString().split('T')[0]}.csv`;
                 a.click();
                 URL.revokeObjectURL(url);
-                showToast('download', 'Data berhasil diekspor', 'success');
+                showToast('download', 'Riwayat berhasil diekspor ke CSV', 'success');
             }
         } catch (err) {
-            showToast('error', 'Gagal mengekspor data', 'error');
+            showToast('error', 'Gagal mengekspor riwayat', 'error');
         }
     };
 
     const clearSemuaData = async () => {
-        if (window.confirm('Apakah Anda yakin ingin menghapus semua data? Ini tidak dapat dibatalkan.')) {
+        if (window.confirm('PERINGATAN: Apakah Anda yakin ingin menghapus semua notifikasi dan riwayat aktivitas?\n\nTindakan ini tidak dapat dibatalkan.')) {
             try {
-                const res = await authFetch('/api/notifications', { method: 'DELETE' });
-                if (res.ok) {
-                    showToast('delete_sweep', 'Notifikasi berhasil dihapus', 'neutral');
+                const [notifRes, historyRes] = await Promise.all([
+                    authFetch('/api/notifications', { method: 'DELETE' }),
+                    authFetch('/api/history', { method: 'DELETE' })
+                ]);
+                
+                if (notifRes.ok && historyRes.ok) {
+                    showToast('delete_sweep', 'Notifikasi & Riwayat berhasil dihapus', 'neutral');
                     await refreshSemua();
+                } else {
+                    showToast('error', 'Gagal menghapus sebagian data', 'error');
                 }
             } catch (err) {
                 showToast('error', 'Gagal menghapus data', 'error');
@@ -118,7 +138,7 @@ export default function Settings({ onLogout }) {
                     >
                         <div className="flex items-center gap-3">
                             <span className="material-symbols-outlined text-error">delete_sweep</span>
-                            <span className="font-body-sm text-body-sm text-error">Hapus Semua Notifikasi</span>
+                            <span className="font-body-sm text-body-sm text-error">Hapus Riwayat & Notifikasi</span>
                         </div>
                         <span className="material-symbols-outlined text-outline text-base">chevron_right</span>
                     </button>
