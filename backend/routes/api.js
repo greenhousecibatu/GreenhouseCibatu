@@ -45,4 +45,21 @@ router.put('/notifications/:id/read', authMiddleware, NotificationController.mar
 router.delete('/notifications/:id', authMiddleware, NotificationController.delete);
 router.delete('/notifications', authMiddleware, NotificationController.clearAll);
 
+// Vercel Cron Job Route
+const HistoryModel = require('../models/historyModel');
+router.get('/cron/cleanup', async (req, res) => {
+    // Basic security to ensure only Vercel can trigger this
+    const authHeader = req.headers.authorization;
+    if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        return res.status(401).send('Unauthorized');
+    }
+
+    try {
+        const deletedCount = await HistoryModel.deleteOldRecords();
+        res.status(200).json({ success: true, deleted: deletedCount });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 module.exports = router;

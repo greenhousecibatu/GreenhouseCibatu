@@ -1,57 +1,59 @@
 // =============================================
-// Schedule Model [M]
+// Schedule Model [M] (MongoDB)
 // =============================================
 
-const db = require('../config/db');
+const mongoose = require('mongoose');
+
+const scheduleSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    type: { type: String, required: true },
+    method: { type: String, default: 'alarm' },
+    time: { type: String, default: null },
+    duration: { type: Number, required: true },
+    days: { type: [String], default: [] },
+    interval_value: { type: Number, default: null },
+    enabled: { type: Boolean, default: true }
+});
+
+const Schedule = mongoose.model('Schedule', scheduleSchema);
 
 const ScheduleModel = {
     getAll: async () => {
-        const [rows] = await db.query('SELECT * FROM schedules ORDER BY time ASC');
-        return rows.map(r => ({
-            ...r,
-            days: typeof r.days === 'string' ? JSON.parse(r.days) : r.days
-        }));
+        return await Schedule.find().sort({ time: 1 }).lean();
     },
 
     getById: async (id) => {
-        const [rows] = await db.query('SELECT * FROM schedules WHERE id = ?', [id]);
-        if (!rows[0]) return null;
-        const schedule = rows[0];
-        schedule.days = typeof schedule.days === 'string' ? JSON.parse(schedule.days) : schedule.days;
-        return schedule;
+        return await Schedule.findById(id).lean();
     },
 
     create: async (data) => {
-        const { name, type, method = 'alarm', time = null, duration, days = null, interval_value = null } = data;
-        const [result] = await db.query(
-            'INSERT INTO schedules (name, type, method, time, duration, days, interval_value, enabled) VALUES (?, ?, ?, ?, ?, ?, ?, 1)',
-            [name, type, method, time, duration, days ? JSON.stringify(days) : null, interval_value]
-        );
-        return ScheduleModel.getById(result.insertId);
+        const { name, type, method = 'alarm', time = null, duration, days = [], interval_value = null } = data;
+        const record = new Schedule({
+            name, type, method, time, duration, days, interval_value, enabled: true
+        });
+        await record.save();
+        return record.toObject();
     },
 
     update: async (id, data) => {
-        const { name, type, method = 'alarm', time = null, duration, days = null, interval_value = null } = data;
-        await db.query(
-            'UPDATE schedules SET name = ?, type = ?, method = ?, time = ?, duration = ?, days = ?, interval_value = ? WHERE id = ?',
-            [name, type, method, time, duration, days ? JSON.stringify(days) : null, interval_value, id]
-        );
-        return ScheduleModel.getById(id);
+        const { name, type, method = 'alarm', time = null, duration, days = [], interval_value = null } = data;
+        const updated = await Schedule.findByIdAndUpdate(id, {
+            name, type, method, time, duration, days, interval_value
+        }, { new: true }).lean();
+        return updated;
     },
 
     delete: async (id) => {
-        const record = await ScheduleModel.getById(id);
-        if (!record) return null;
-        await db.query('DELETE FROM schedules WHERE id = ?', [id]);
+        const record = await Schedule.findByIdAndDelete(id).lean();
         return record;
     },
 
     toggleEnabled: async (id) => {
-        const record = await ScheduleModel.getById(id);
+        const record = await Schedule.findById(id);
         if (!record) return null;
-        const newState = record.enabled ? 0 : 1;
-        await db.query('UPDATE schedules SET enabled = ? WHERE id = ?', [newState, id]);
-        return ScheduleModel.getById(id);
+        record.enabled = !record.enabled;
+        await record.save();
+        return record.toObject();
     }
 };
 

@@ -1,18 +1,22 @@
 // =============================================
-// AgriLog - Database Connection Configuration
+// AgriLog - Database Connection Configuration (MongoDB)
 // =============================================
 
-const mysql = require('mysql2/promise');
+const mongoose = require('mongoose');
 
-const pool = mysql.createPool({
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 3306,
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'agrilog',
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
-});
+const connectDB = async () => {
+    try {
+        if (mongoose.connection.readyState >= 1) return;
+        
+        await mongoose.connect(process.env.MONGODB_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        });
+        console.log('✅ MongoDB Atlas connected successfully');
+    } catch (err) {
+        console.error('❌ MongoDB Connection Error:', err.message);
+        process.exit(1);
+    }
+};
 
-module.exports = pool;
+module.exports = connectDB;

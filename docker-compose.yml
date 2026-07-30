@@ -1,17 +1,6 @@
 
 services:
-  db:
-    image: mysql:8.0
-    container_name: agrilog-db
-    restart: always
-    environment:
-      MYSQL_DATABASE: agrilog
-      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql-data:/var/lib/mysql
-      - ./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+
 
   backend:
     build: ./backend
@@ -20,14 +9,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - DB_HOST=db
-      - DB_PORT=3306
-      - DB_USER=root
-      - DB_PASSWORD=
-      - DB_NAME=agrilog
       - PORT=3000
-    depends_on:
-      - db
+      - MONGODB_URI=mongodb+srv://Vercel-Admin-GreenhouseCibatu:SMSRiJX1G97b41ZD@greenhousecibatu.ijrkd2f.mongodb.net/?retryWrites=true&w=majority
 
   frontend:
     build: ./frontend
@@ -40,5 +23,3 @@ services:
     depends_on:
       - backend
 
-volumes:
-  mysql-data:

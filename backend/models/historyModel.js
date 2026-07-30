@@ -1,43 +1,51 @@
 // =============================================
-// History Model [M]
+// History Model [M] (MongoDB)
 // =============================================
 
-const db = require('../config/db');
+const mongoose = require('mongoose');
+
+const historySchema = new mongoose.Schema({
+    type: { type: String, required: true },
+    action: { type: String, required: true },
+    detail: { type: String, required: true },
+    duration: { type: String, default: '—' },
+    status: { type: String, default: 'success' },
+    created_at: { type: Date, default: Date.now }
+});
+
+const History = mongoose.model('History', historySchema);
 
 const HistoryModel = {
     getFiltered: async (filter = 'all') => {
-        let query = 'SELECT * FROM history';
-        const params = [];
-
-        if (filter !== 'all') {
-            query += ' WHERE type = ?';
-            params.push(filter);
-        }
-
-        query += ' ORDER BY created_at DESC LIMIT 50';
-        const [rows] = await db.query(query, params);
-        return rows;
+        const query = filter !== 'all' ? { type: filter } : {};
+        return await History.find(query).sort({ created_at: -1 }).limit(50).lean();
     },
 
     create: async (data) => {
         const { type, action, detail, duration, status } = data;
-        const [result] = await db.query(
-            'INSERT INTO history (type, action, detail, duration, status) VALUES (?, ?, ?, ?, ?)',
-            [type, action, detail, duration || '—', status || 'success']
-        );
-        const [rows] = await db.query('SELECT * FROM history WHERE id = ?', [result.insertId]);
-        return rows[0];
+        const record = new History({
+            type,
+            action,
+            detail,
+            duration: duration || '—',
+            status: status || 'success'
+        });
+        await record.save();
+        return record.toObject();
     },
 
     deleteOldRecords: async () => {
         // Hapus data riwayat yang lebih lama dari 30 hari
-        const [result] = await db.query('DELETE FROM history WHERE created_at < NOW() - INTERVAL 30 DAY');
-        return result.affectedRows;
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        const result = await History.deleteMany({ created_at: { $lt: thirtyDaysAgo } });
+        return result.deletedCount;
     },
 
     deleteAll: async () => {
-        const [result] = await db.query('DELETE FROM history');
-        return result.affectedRows;
+        const result = await History.deleteMany({});
+        return result.deletedCount;
     }
 };
 
