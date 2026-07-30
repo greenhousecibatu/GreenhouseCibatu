@@ -8,7 +8,10 @@ const connectDB = async () => {
     try {
         if (mongoose.connection.readyState >= 1) return;
         
-        await mongoose.connect(process.env.MONGODB_URI, {
+        const uri = process.env.MONGODB_URI || process.env.MONGODB_URL;
+        if (!uri) throw new Error("MongoDB connection string is missing");
+
+        await mongoose.connect(uri, {
             useNewUrlParser: true,
             useUnifiedTopology: true
         });
