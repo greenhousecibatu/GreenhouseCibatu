@@ -1,6 +1,6 @@
 # Greenhouse Cibatu
 
-Greenhouse Cibatu (formerly AgriLog) is a Smart Greenhouse Irrigation Dashboard built to monitor and control greenhouse solenoids automatically or manually 
+Greenhouse Cibatu is a Smart Greenhouse Irrigation Dashboard built to monitor and control greenhouse solenoids automatically or manually 
 
 ## Features
 

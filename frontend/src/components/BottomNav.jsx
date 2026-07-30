@@ -6,9 +6,9 @@ export default function BottomNav() {
 
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: 'potted_plant' },
-        { id: 'schedules', label: 'Schedules', icon: 'event_repeat' },
-        { id: 'history', label: 'History', icon: 'history' },
-        { id: 'settings', label: 'Settings', icon: 'settings' }
+        { id: 'schedules', label: 'Jadwal', icon: 'event_repeat' },
+        { id: 'history', label: 'Riwayat', icon: 'history' },
+        { id: 'settings', label: 'Pengaturan', icon: 'settings' }
     ];
 
     return (

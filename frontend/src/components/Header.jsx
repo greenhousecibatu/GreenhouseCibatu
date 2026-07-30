@@ -9,7 +9,7 @@ export default function Header() {
         setIsNotifOpen,
         markNotifRead,
         dismissNotif,
-        clearAllNotifications
+        clearSemuaNotifications
     } = useApp();
 
     const drawerRef = useRef(null);
@@ -23,11 +23,11 @@ export default function Header() {
         const diffHr = Math.floor(diffMs / 3600000);
         const diffDay = Math.floor(diffMs / 86400000);
 
-        if (diffMin < 1) return 'Just now';
-        if (diffMin < 60) return `${diffMin}m ago`;
-        if (diffHr < 24) return `${diffHr}h ago`;
-        if (diffDay < 7) return `${diffDay}d ago`;
-        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        if (diffMin < 1) return 'Baru saja';
+        if (diffMin < 60) return `${diffMin}m lalu`;
+        if (diffHr < 24) return `${diffHr}j lalu`;
+        if (diffDay < 7) return `${diffDay}h lalu`;
+        return d.toLocaleDateString('id-ID', { month: 'short', day: 'numeric' });
     };
 
     // Close drawer on clicking outside
@@ -71,13 +71,13 @@ export default function Header() {
             >
                 <div className="max-w-md mx-auto px-container-padding py-md max-h-80 overflow-y-auto custom-scrollbar">
                     <div className="flex justify-between items-center mb-md">
-                        <h3 className="font-title-md text-title-md text-on-surface">Notifications</h3>
+                        <h3 className="font-title-md text-title-md text-on-surface">Notifikasi</h3>
                         {notifications.length > 0 && (
                             <button
-                                onClick={clearAllNotifications}
+                                onClick={clearSemuaNotifications}
                                 className="font-label-bold text-label-bold text-error hover:underline"
                             >
-                                Clear All
+                                Hapus Semua
                             </button>
                         )}
                     </div>
@@ -85,7 +85,7 @@ export default function Header() {
                     {notifications.length === 0 ? (
                         <div className="text-center py-lg">
                             <span className="material-symbols-outlined text-4xl text-outline-variant mb-2">notifications_off</span>
-                            <p className="font-body-sm text-body-sm text-outline">No notifications</p>
+                            <p className="font-body-sm text-body-sm text-outline">Tidak ada notifikasi</p>
                         </div>
                     ) : (
                         <div className="space-y-2">

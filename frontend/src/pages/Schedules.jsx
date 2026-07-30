@@ -1,5 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
+import WheelPicker from '../components/WheelPicker';
+import CircularProgress from '../components/CircularProgress';
+
+// Helper to convert HH:MM:SS to total seconds
+const timeToSeconds = (h, m, s) => (h * 3600) + (m * 60) + s;
+// Helper to convert total seconds to HH, MM, SS
+const secondsToTime = (totalSeconds) => {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    return { h, m, s };
+};
 
 export default function Schedules() {
     const {
@@ -8,418 +20,480 @@ export default function Schedules() {
         createSchedule,
         updateSchedule,
         deleteSchedule,
-        showToast
+        showToast,
+        timers,
+        initTimer,
+        updateTimer,
+        removeTimer
     } = useApp();
 
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-    const [editScheduleData, setEditScheduleData] = useState(null);
-    const [deleteScheduleId, setDeleteScheduleId] = useState(null);
-    const [activeContextId, setActiveContextId] = useState(null);
+    const [activeTab, setActiveTab] = useState('alarm'); // alarm, countdown, interval
 
-    // Form states
-    const [formData, setFormData] = useState({
-        name: '',
-        type: 'water',
-        time: '08:00',
-        duration: 30,
-        days: []
-    });
-
-    const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const dayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-
-    // Stats
-    const irrigationActive = schedules.filter(s => s.type === 'water' && s.enabled).length;
-    const fertActive = schedules.filter(s => s.type === 'fertilizer' && s.enabled).length;
-
-    // Reset form when modal opens/closes
-    useEffect(() => {
-        if (editScheduleData) {
-            setFormData({
-                name: editScheduleData.name,
-                type: editScheduleData.type,
-                time: editScheduleData.time,
-                duration: editScheduleData.duration,
-                days: editScheduleData.days || []
-            });
-        } else {
-            setFormData({
-                name: '',
-                type: 'water',
-                time: '08:00',
-                duration: 30,
-                days: []
-            });
-        }
-    }, [editScheduleData, isModalOpen]);
-
-    // Handle day chip toggle in form
-    const toggleDay = (day) => {
-        setFormData(prev => {
-            const days = prev.days.includes(day)
-                ? prev.days.filter(d => d !== day)
-                : [...prev.days, day];
-            return { ...prev, days };
-        });
-    };
-
-    // Open create modal
-    const openCreateModal = () => {
-        setEditScheduleData(null);
-        setIsModalOpen(true);
-    };
-
-    // Open edit modal
-    const openEditModal = (schedule) => {
-        setActiveContextId(null);
-        setEditScheduleData(schedule);
-        setIsModalOpen(true);
-    };
-
-    // Save form
-    const handleSave = async () => {
-        if (!formData.name.trim()) {
-            showToast('error', 'Please enter a schedule name', 'error');
-            return;
-        }
-        if (formData.days.length === 0) {
-            showToast('error', 'Please select at least one active day', 'error');
-            return;
-        }
-
-        if (editScheduleData) {
-            await updateSchedule(editScheduleData.id, formData);
-        } else {
-            await createSchedule(formData);
-        }
-        setIsModalOpen(false);
-    };
-
-    // Trigger delete confirmation
-    const triggerDelete = (id) => {
-        setActiveContextId(null);
-        setDeleteScheduleId(id);
-        setIsDeleteOpen(true);
-    };
-
-    // Confirm delete
-    const handleDeleteConfirm = async () => {
-        if (deleteScheduleId) {
-            await deleteSchedule(deleteScheduleId);
-            setIsDeleteOpen(false);
-            setDeleteScheduleId(null);
-        }
-    };
-
-    // Setup slider duration styles
-    const getSliderPct = () => {
-        return ((formData.duration - 5) / (180 - 5)) * 100;
-    };
-
-    // Close contexts on click outside
-    useEffect(() => {
-        const handleOutsideClick = (e) => {
-            if (activeContextId && !e.target.closest('.context-menu') && !e.target.closest('.ctx-trigger')) {
-                setActiveContextId(null);
-            }
-        };
-        document.addEventListener('click', handleOutsideClick);
-        return () => document.removeEventListener('click', handleOutsideClick);
-    }, [activeContextId]);
+    // Filter schedules by method
+    const alarmSchedules = schedules.filter(s => s.method === 'alarm');
+    const countdownSchedules = schedules.filter(s => s.method === 'countdown');
+    const intervalSchedules = schedules.filter(s => s.method === 'interval');
 
     return (
-        <div className="space-y-lg">
+        <div className="space-y-lg pb-24">
             {/* Header */}
             <div className="flex justify-between items-end">
                 <div>
-                    <p className="font-label-caps text-label-caps text-outline uppercase tracking-widest mb-1">Automation Engine</p>
-                    <h1 className="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Active Schedules</h1>
+                    <p className="font-label-caps text-label-caps text-outline uppercase tracking-widest mb-1">Mesin Otomatisasi</p>
+                    <h1 className="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Jadwal Aktif</h1>
                 </div>
-                <button
-                    onClick={openCreateModal}
-                    className="flex items-center justify-center bg-primary text-on-primary rounded-full px-4 py-2 font-label-bold text-label-bold shadow-lg active:scale-90 transition-transform"
+            </div>
+
+            {/* Top Tabs */}
+            <div className="flex bg-surface-container-low rounded-xl p-1.5 shadow-sm">
+                <button 
+                    className={`flex-1 py-3 font-label-bold text-center rounded-lg transition-colors ${activeTab === 'alarm' ? 'bg-primary text-white shadow-md' : 'text-on-surface hover:bg-surface-variant/50'}`}
+                    onClick={() => setActiveTab('alarm')}
                 >
-                    <span className="material-symbols-outlined mr-1 text-base">add</span> New
+                    Alarm
+                </button>
+                <button 
+                    className={`flex-1 py-3 font-label-bold text-center rounded-lg transition-colors ${activeTab === 'countdown' ? 'bg-primary text-white shadow-md' : 'text-on-surface hover:bg-surface-variant/50'}`}
+                    onClick={() => setActiveTab('countdown')}
+                >
+                    Mundur
+                </button>
+                <button 
+                    className={`flex-1 py-3 font-label-bold text-center rounded-lg transition-colors ${activeTab === 'interval' ? 'bg-primary text-white shadow-md' : 'text-on-surface hover:bg-surface-variant/50'}`}
+                    onClick={() => setActiveTab('interval')}
+                >
+                    Interval
                 </button>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 gap-card-gap">
-                <div className="bg-surface-container-lowest p-md rounded-xl shadow-sm border border-outline-variant/30 flex flex-col justify-between">
-                    <span className="material-symbols-outlined text-primary text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>water_drop</span>
-                    <div className="mt-4">
-                        <p className="font-title-md text-title-md text-primary">{irrigationActive} Active</p>
-                        <p className="font-label-bold text-label-bold text-outline">Irrigation</p>
-                    </div>
-                </div>
-                <div className="bg-surface-container-lowest p-md rounded-xl shadow-sm border border-outline-variant/30 flex flex-col justify-between">
-                    <span className="material-symbols-outlined text-secondary text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>science</span>
-                    <div className="mt-4">
-                        <p className="font-title-md text-title-md text-secondary">{fertActive} Active</p>
-                        <p class="font-label-bold text-label-bold text-outline">Fertilizer</p>
-                    </div>
-                </div>
+            {/* Tab Content */}
+            <div className="mt-8">
+                {activeTab === 'alarm' && (
+                    <AlarmTab 
+                        schedules={alarmSchedules} 
+                        onCreate={createSchedule} 
+                        onUpdate={updateSchedule}
+                        onDelete={deleteSchedule}
+                        onToggle={toggleScheduleEnabled}
+                        showToast={showToast}
+                    />
+                )}
+                {activeTab === 'countdown' && (
+                    <CountdownTab 
+                        schedules={countdownSchedules} 
+                        onCreate={createSchedule} 
+                        onUpdate={updateSchedule}
+                        onDelete={deleteSchedule}
+                        onToggle={toggleScheduleEnabled}
+                        showToast={showToast}
+                        timers={timers}
+                        initTimer={initTimer}
+                        updateTimer={updateTimer}
+                        removeTimer={removeTimer}
+                    />
+                )}
+                {activeTab === 'interval' && (
+                    <IntervalTab 
+                        schedules={intervalSchedules} 
+                        onCreate={createSchedule} 
+                        onUpdate={updateSchedule}
+                        onDelete={deleteSchedule}
+                        onToggle={toggleScheduleEnabled}
+                        showToast={showToast}
+                    />
+                )}
             </div>
+        </div>
+    );
+}
 
-            {/* Schedules List */}
-            {schedules.length === 0 ? (
-                <div className="text-center py-xl">
-                    <span className="material-symbols-outlined empty-state-icon">event_busy</span>
-                    <p className="font-title-md text-title-md text-outline mt-3">No Schedules Yet</p>
-                    <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">Tap "+ New" to create your first automation schedule.</p>
-                </div>
-            ) : (
-                <div className="space-y-card-gap">
-                    {schedules.map(schedule => {
-                        const isWater = schedule.type === 'water';
-                        const colorClass = isWater ? 'primary' : 'secondary';
-                        const stripClass = schedule.enabled ? (isWater ? 'strip-green' : 'strip-blue') : 'strip-gray';
-                        const icon = isWater ? 'water_drop' : 'science';
-                        const bgIcon = isWater ? 'bg-primary-fixed' : 'bg-secondary-fixed';
-                        const opacityClass = schedule.enabled ? '' : 'opacity-50';
+// ==========================================
+// ALARM TAB
+// ==========================================
+function AlarmTab({ schedules, onCreate, onUpdate, onDelete, onToggle, showToast }) {
+    const [isCreating, setIsCreating] = useState(false);
+    const [editId, setEditId] = useState(null);
+    const [timeVal, setTimeVal] = useState({ hour: 8, minute: 0 });
+    const [formData, setFormData] = useState({ name: '', type: 'water', duration: 30, days: [] });
+    
+    const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const dayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
-                        return (
-                            <div
-                                key={schedule.id}
-                                className={`schedule-card bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden ${stripClass} ${opacityClass} relative`}
-                            >
-                                <div className="p-md">
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`${bgIcon} w-10 h-10 rounded-lg flex items-center justify-center`}>
-                                                <span className={`material-symbols-outlined text-${colorClass}`} style={{ fontVariationSettings: "'FILL' 1" }}>
-                                                    {icon}
-                                                </span>
-                                            </div>
-                                            <div>
-                                                <h3 className="font-title-md text-title-md text-on-surface">{schedule.name}</h3>
-                                                <p className="font-label-bold text-label-bold text-outline">
-                                                    {isWater ? 'Water Valve' : 'Fertilizer Tank'}{schedule.enabled ? '' : ' • Disabled'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <div
-                                                className={`toggle-track sm ${schedule.enabled ? 'on' : ''}`}
-                                                onClick={() => toggleScheduleEnabled(schedule.id)}
-                                            >
-                                                <div className="toggle-thumb"></div>
-                                            </div>
-                                            <button
-                                                className="p-1 rounded-full hover:bg-surface-container-high transition-colors ctx-trigger"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setActiveContextId(activeContextId === schedule.id ? null : schedule.id);
-                                                }}
-                                            >
-                                                <span className="material-symbols-outlined text-outline">more_vert</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div className="mt-md flex justify-between items-center">
-                                        <div className="flex flex-col">
-                                            <span className={`text-3xl font-bold text-${colorClass} leading-none`} style={{ fontFamily: 'Plus Jakarta Sans' }}>
-                                                {schedule.time}
-                                            </span>
-                                            <span className="font-label-caps text-label-caps text-outline mt-1 uppercase">Starting time</span>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="font-title-md text-title-md text-on-surface">{schedule.duration} min</p>
-                                            <p className="font-label-caps text-label-caps text-outline uppercase">Duration</p>
-                                        </div>
-                                    </div>
-                                    <div className="mt-3 flex gap-1.5">
-                                        {dayLabels.map((day, i) => {
-                                            const active = schedule.days && schedule.days.includes(day);
-                                            const activeClass = active
-                                                ? (isWater ? 'day-chip selected' : 'day-chip selected-secondary')
-                                                : '';
-                                            return (
-                                                <span
-                                                    key={day}
-                                                    className={`w-7 h-7 rounded-full border border-outline-variant flex items-center justify-center font-label-bold text-on-surface-variant ${activeClass}`}
-                                                    style={{ fontSize: '10px' }}
-                                                >
-                                                    {dayLetters[i]}
-                                                </span>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
+    const handleEdit = (schedule) => {
+        const [h, m] = schedule.time.split(':').map(Number);
+        setTimeVal({ hour: h || 0, minute: m || 0 });
+        setFormData({ name: schedule.name, type: schedule.type, duration: schedule.duration, days: schedule.days || [] });
+        setEditId(schedule.id);
+        setIsCreating(true);
+    };
 
-                                {/* Context Menu */}
-                                <div className={`context-menu bg-surface-container-lowest rounded-xl shadow-xl border border-outline-variant/30 overflow-hidden ${activeContextId === schedule.id ? 'show' : ''}`}>
-                                    <button
-                                        className="flex items-center gap-2 px-4 py-3 w-full hover:bg-surface-container-low transition-colors"
-                                        onClick={() => openEditModal(schedule)}
-                                    >
-                                        <span className="material-symbols-outlined text-primary text-base">edit</span>
-                                        <span className="font-body-sm text-body-sm text-on-surface">Edit</span>
-                                    </button>
-                                    <button
-                                        className="flex items-center gap-2 px-4 py-3 w-full hover:bg-error-container/30 transition-colors"
-                                        onClick={() => triggerDelete(schedule.id)}
-                                    >
-                                        <span className="material-symbols-outlined text-error text-base">delete</span>
-                                        <span className="font-body-sm text-body-sm text-error">Delete</span>
-                                    </button>
-                                </div>
-                            </div>
-                        );
-                    })}
+    const resetForm = () => {
+        setIsCreating(false);
+        setEditId(null);
+        setFormData({ name: '', type: 'water', duration: 30, days: [] });
+    };
+
+    const handleSave = () => {
+        if (!formData.name) return showToast('error', 'Nama harus diisi', 'error');
+        if (formData.days.length === 0) return showToast('error', 'Pilih minimal satu hari', 'error');
+        
+        const timeStr = `${String(timeVal.hour).padStart(2,'0')}:${String(timeVal.minute).padStart(2,'0')}`;
+        const payload = {
+            ...formData,
+            method: 'alarm',
+            time: timeStr,
+            interval_value: 0
+        };
+
+        if (editId) {
+            onUpdate(editId, payload);
+        } else {
+            onCreate(payload);
+        }
+        resetForm();
+    };
+
+    return (
+        <div className="space-y-6">
+            {!isCreating && (
+                <button onClick={() => setIsCreating(true)} className="w-full py-4 border-2 border-dashed border-primary/50 text-primary font-title-md rounded-2xl hover:bg-primary/5 flex items-center justify-center gap-2">
+                    <span className="material-symbols-outlined">add</span> Tambah Alarm
+                </button>
+            )}
+
+            {isCreating && (
+                <div className="bg-surface-container-lowest p-6 rounded-3xl shadow-sm border border-outline-variant/30 space-y-6">
+                    <h3 className="font-title-md text-on-surface">{editId ? 'Edit Alarm' : 'Setup Alarm Baru'}</h3>
+                    
+                    <WheelPicker 
+                        columns={[
+                            { name: 'hour', options: Array.from({length: 24}, (_, i) => i) },
+                            { name: 'minute', options: Array.from({length: 60}, (_, i) => i) }
+                        ]}
+                        value={timeVal}
+                        onChange={(col, val) => setTimeVal(prev => ({ ...prev, [col]: val }))}
+                    />
+                    
+                    <input type="text" placeholder="Nama Alarm" className="w-full bg-surface-container-low p-4 rounded-xl text-on-surface outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                    
+                    <div>
+                        <label className="text-sm font-bold text-outline uppercase mb-2 block">Hari Aktif</label>
+                        <div className="flex gap-2 justify-between">
+                            {dayLabels.map((day, i) => (
+                                <button key={day} type="button" onClick={() => {
+                                    const days = formData.days.includes(day) ? formData.days.filter(d => d !== day) : [...formData.days, day];
+                                    setFormData({...formData, days});
+                                }} className={`w-10 h-10 rounded-full font-bold flex items-center justify-center transition-colors ${formData.days.includes(day) ? 'bg-primary text-white' : 'bg-surface-container-high text-on-surface-variant'}`}>
+                                    {dayLetters[i]}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                        <button type="button" onClick={() => setFormData({...formData, type: 'water'})} className={`flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 ${formData.type === 'water' ? 'bg-primary-fixed text-primary' : 'bg-surface-container-low text-outline'}`}>Air</button>
+                        <button type="button" onClick={() => setFormData({...formData, type: 'fertilizer'})} className={`flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 ${formData.type === 'fertilizer' ? 'bg-secondary-fixed text-secondary' : 'bg-surface-container-low text-outline'}`}>Pupuk</button>
+                    </div>
+
+                    <div className="flex gap-4 pt-4">
+                        <button onClick={resetForm} className="flex-1 py-4 bg-surface-container-high text-on-surface rounded-xl font-bold">Batal</button>
+                        <button onClick={handleSave} className="flex-1 py-4 bg-primary text-white rounded-xl font-bold shadow-lg">Simpan</button>
+                    </div>
                 </div>
             )}
 
-            {/* Create/Edit Modal */}
-            <div className={`modal-overlay fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm ${isModalOpen ? 'show' : ''}`}>
-                <div className="modal-content bg-surface-container-lowest w-full max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col">
-                    <div className="bg-gradient-to-br from-primary to-primary-container p-lg text-on-primary flex-shrink-0">
-                        <div className="flex justify-between items-center mb-sm">
-                            <h3 className="font-headline-lg-mobile text-headline-lg-mobile">
-                                {editScheduleData ? 'Edit Schedule' : 'New Schedule'}
-                            </h3>
-                            <button
-                                onClick={() => setIsModalOpen(false)}
-                                className="hover:bg-white/20 p-1.5 rounded-full transition-colors"
-                            >
-                                <span className="material-symbols-outlined">close</span>
-                            </button>
-                        </div>
-                        <p className="font-body-sm text-body-sm opacity-90">Configure timing and delivery parameters for your greenhouse automation.</p>
+            <div className="space-y-4">
+                {schedules.map(s => (
+                    <StandardCard key={s.id} schedule={s} onToggle={onToggle} onDelete={onDelete} onEdit={() => handleEdit(s)} />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ==========================================
+// COUNTDOWN TAB
+// ==========================================
+function CountdownTab({ schedules, onCreate, onUpdate, onDelete, onToggle, showToast, timers, initTimer, updateTimer, removeTimer }) {
+    const [isCreating, setIsCreating] = useState(false);
+    const [editId, setEditId] = useState(null);
+    const [timeVal, setTimeVal] = useState({ h: 0, m: 30, s: 0 });
+    const [formData, setFormData] = useState({ name: '', type: 'water', duration: 30 });
+
+    const handleEdit = (schedule) => {
+        const { h, m, s } = secondsToTime(schedule.interval_value || 0);
+        setTimeVal({ h, m, s });
+        setFormData({ name: schedule.name, type: schedule.type, duration: schedule.duration });
+        setEditId(schedule.id);
+        setIsCreating(true);
+    };
+
+    const resetForm = () => {
+        setIsCreating(false);
+        setEditId(null);
+        setFormData({ name: '', type: 'water', duration: 30 });
+    };
+
+    const handleSave = () => {
+        if (!formData.name) return showToast('error', 'Nama harus diisi', 'error');
+        const totalSec = timeToSeconds(timeVal.h, timeVal.m, timeVal.s);
+        if (totalSec <= 0) return showToast('error', 'Waktu tidak boleh 0', 'error');
+
+        const payload = {
+            ...formData,
+            method: 'countdown',
+            interval_value: totalSec,
+            time: '00:00',
+            days: []
+        };
+
+        if (editId) {
+            onUpdate(editId, payload);
+            if (timers[editId]) removeTimer(editId); // reset timer if running
+        } else {
+            onCreate(payload);
+        }
+        resetForm();
+    };
+
+    return (
+        <div className="space-y-6">
+            {!isCreating && (
+                <button onClick={() => setIsCreating(true)} className="w-full py-4 border-2 border-dashed border-primary/50 text-primary font-title-md rounded-2xl hover:bg-primary/5 flex items-center justify-center gap-2">
+                    <span className="material-symbols-outlined">add</span> Tambah Hitung Mundur
+                </button>
+            )}
+
+            {isCreating && (
+                <div className="bg-surface-container-lowest p-6 rounded-3xl shadow-sm border border-outline-variant/30 space-y-6">
+                    <h3 className="font-title-md text-on-surface">{editId ? 'Edit Timer Mundur' : 'Setup Timer Mundur'}</h3>
+                    
+                    <WheelPicker 
+                        columns={[
+                            { name: 'h', options: Array.from({length: 24}, (_, i) => i) },
+                            { name: 'm', options: Array.from({length: 60}, (_, i) => i) },
+                            { name: 's', options: Array.from({length: 60}, (_, i) => i) }
+                        ]}
+                        value={timeVal}
+                        onChange={(col, val) => setTimeVal(prev => ({ ...prev, [col]: val }))}
+                    />
+                    
+                    <input type="text" placeholder="Nama Timer" className="w-full bg-surface-container-low p-4 rounded-xl text-on-surface outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                    
+                    <div className="flex gap-2">
+                        <button type="button" onClick={() => setFormData({...formData, type: 'water'})} className={`flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 ${formData.type === 'water' ? 'bg-primary-fixed text-primary' : 'bg-surface-container-low text-outline'}`}>Air</button>
+                        <button type="button" onClick={() => setFormData({...formData, type: 'fertilizer'})} className={`flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 ${formData.type === 'fertilizer' ? 'bg-secondary-fixed text-secondary' : 'bg-surface-container-low text-outline'}`}>Pupuk</button>
                     </div>
-                    <form className="p-lg space-y-lg overflow-y-auto custom-scrollbar flex-1" onSubmit={e => e.preventDefault()}>
-                        {/* Valve Type */}
-                        <div className="space-y-xs">
-                            <label className="font-label-bold text-label-bold text-outline uppercase px-1">Valve Type</label>
-                            <div className="grid grid-cols-2 gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, type: 'water' }))}
-                                    className={`valve-type-btn flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${formData.type === 'water' ? 'border-primary bg-primary-fixed/30 text-primary' : 'border-outline-variant bg-surface-container-low text-outline'}`}
-                                >
-                                    <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>water_drop</span>
-                                    <span className="font-label-bold text-label-bold">Water</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, type: 'fertilizer' }))}
-                                    className={`valve-type-btn flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${formData.type === 'fertilizer' ? 'border-secondary bg-secondary-fixed/30 text-secondary' : 'border-outline-variant bg-surface-container-low text-outline'}`}
-                                >
-                                    <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>science</span>
-                                    <span className="font-label-bold text-label-bold">Fertilizer</span>
-                                </button>
-                            </div>
-                        </div>
 
-                        {/* Name */}
-                        <div className="space-y-xs">
-                            <label className="font-label-bold text-label-bold text-outline uppercase px-1">Schedule Name</label>
-                            <input
-                                type="text"
-                                placeholder="e.g. Morning Drip"
-                                value={formData.name}
-                                onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                                className="w-full bg-surface-container-low border border-outline-variant rounded-xl p-md text-on-surface font-body-lg focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-all"
-                                required
-                            />
-                        </div>
+                    <div className="flex gap-4 pt-4">
+                        <button onClick={resetForm} className="flex-1 py-4 bg-surface-container-high text-on-surface rounded-xl font-bold">Batal</button>
+                        <button onClick={handleSave} className="flex-1 py-4 bg-primary text-white rounded-xl font-bold shadow-lg">Simpan</button>
+                    </div>
+                </div>
+            )}
 
-                        {/* Time */}
-                        <div className="space-y-xs">
-                            <label className="font-label-bold text-label-bold text-outline uppercase px-1">Start Time</label>
-                            <input
-                                type="time"
-                                value={formData.time}
-                                onChange={e => setFormData(prev => ({ ...prev, time: e.target.value }))}
-                                className="w-full bg-surface-container-low border border-outline-variant rounded-xl p-md text-on-surface font-headline-lg-mobile text-center focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-all"
-                                required
-                            />
-                        </div>
+            <div className="space-y-4">
+                {schedules.map(s => (
+                    <CountdownCard 
+                        key={s.id} 
+                        schedule={s} 
+                        onToggle={onToggle} 
+                        onDelete={onDelete} 
+                        onEdit={() => handleEdit(s)}
+                        timers={timers}
+                        initTimer={initTimer}
+                        updateTimer={updateTimer}
+                        removeTimer={removeTimer}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+}
 
-                        {/* Days */}
-                        <div className="space-y-xs">
-                            <label className="font-label-bold text-label-bold text-outline uppercase px-1">Active Days</label>
-                            <div className="flex flex-wrap gap-2 pt-1">
-                                {dayLabels.map(day => {
-                                    const isSelected = formData.days.includes(day);
-                                    const selectClass = isSelected
-                                        ? (formData.type === 'water' ? 'selected' : 'selected-secondary')
-                                        : '';
-                                    return (
-                                        <button
-                                            key={day}
-                                            type="button"
-                                            onClick={() => toggleDay(day)}
-                                            className={`day-chip w-10 h-10 rounded-full border border-outline-variant flex items-center justify-center font-label-bold text-on-surface-variant ${selectClass}`}
-                                        >
-                                            {day.substring(0, 1)}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
+function CountdownCard({ schedule, onToggle, onDelete, onEdit, timers, initTimer, updateTimer, removeTimer }) {
+    const totalSecs = schedule.interval_value || 1800;
+    const isActive = schedule.enabled;
+    const timerState = timers[schedule.id];
 
-                        {/* Duration */}
-                        <div className="space-y-md">
-                            <div className="flex justify-between items-center px-1">
-                                <label className="font-label-bold text-label-bold text-outline uppercase">Duration</label>
-                                <span className="font-title-md text-title-md text-primary">{formData.duration} min</span>
-                            </div>
-                            <input
-                                type="range"
-                                min="5"
-                                max="180"
-                                step="5"
-                                value={formData.duration}
-                                onChange={e => setFormData(prev => ({ ...prev, duration: parseInt(e.target.value) }))}
-                                style={{ '--val': `${getSliderPct()}%` }}
-                                className="w-full h-2 cursor-pointer"
-                            />
-                            <div className="flex justify-between px-1">
-                                <span className="font-label-caps text-label-caps text-outline">5 min</span>
-                                <span className="font-label-caps text-label-caps text-outline">180 min</span>
-                            </div>
-                        </div>
+    useEffect(() => {
+        if (isActive && !timerState) {
+            initTimer(schedule.id, totalSecs);
+        } else if (!isActive && timerState) {
+            removeTimer(schedule.id);
+        }
+    }, [isActive, schedule.id, totalSecs, timerState, initTimer, removeTimer]);
 
-                        {/* Save Button */}
-                        <div className="pt-sm pb-4">
-                            <button
-                                type="button"
-                                onClick={handleSave}
-                                className="w-full bg-primary text-on-primary font-title-md py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-transform"
-                            >
-                                Save Schedule
-                            </button>
-                        </div>
-                    </form>
+    const formatTime = (totalSec) => {
+        const { h, m, s } = secondsToTime(totalSec);
+        return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    };
+
+    const handleStop = () => {
+        if (isActive) onToggle(schedule.id);
+        removeTimer(schedule.id);
+    };
+
+    const handlePauseToggle = () => {
+        if (timerState) {
+            updateTimer(schedule.id, { isPaused: !timerState.isPaused });
+        }
+    };
+
+    if (isActive && timerState) {
+        const progress = ((totalSecs - timerState.remaining) / totalSecs) * 100;
+        return (
+            <div className="bg-surface-container-lowest rounded-3xl p-6 shadow-sm border border-primary/20 relative overflow-hidden">
+                <div className="absolute top-4 left-4 z-10 flex flex-col">
+                    <span className="font-bold text-lg">{schedule.name}</span>
+                    <span className="text-sm text-outline">{schedule.type === 'water' ? 'Katup Air' : 'Tangki Pupuk'}</span>
+                </div>
+                <div className="mt-8">
+                    <CircularProgress 
+                        progress={progress} 
+                        text={formatTime(timerState.remaining)} 
+                        subtext={`Total ${totalSecs} seconds`}
+                        isPaused={timerState.isPaused}
+                        onPause={handlePauseToggle}
+                        onStop={handleStop}
+                    />
                 </div>
             </div>
+        );
+    }
 
-            {/* Delete Confirmation Modal */}
-            <div className={`modal-overlay fixed inset-0 z-[110] flex items-center justify-center bg-black/40 backdrop-blur-sm p-container-padding ${isDeleteOpen ? 'show' : ''}`}>
-                <div className="modal-content bg-surface-container-lowest w-full max-w-xs rounded-3xl overflow-hidden shadow-2xl">
-                    <div className="p-lg text-center">
-                        <div className="w-16 h-16 mx-auto rounded-full bg-error-container flex items-center justify-center mb-md">
-                            <span className="material-symbols-outlined text-error text-3xl">delete</span>
-                        </div>
-                        <h3 className="font-title-md text-title-md text-on-surface mb-2">Delete Schedule?</h3>
-                        <p className="font-body-sm text-body-sm text-on-surface-variant">This action cannot be undone. The schedule will be permanently removed.</p>
+    // Setup / Inactive State Card
+    return (
+        <StandardCard schedule={schedule} onToggle={onToggle} onDelete={onDelete} onEdit={onEdit} customSub={`Timer: ${formatTime(totalSecs)}`} />
+    );
+}
+
+// ==========================================
+// INTERVAL TAB
+// ==========================================
+function IntervalTab({ schedules, onCreate, onUpdate, onDelete, onToggle, showToast }) {
+    const [isCreating, setIsCreating] = useState(false);
+    const [editId, setEditId] = useState(null);
+    const [timeVal, setTimeVal] = useState({ h: 2, m: 0, s: 0 });
+    const [formData, setFormData] = useState({ name: '', type: 'water', duration: 15 });
+
+    const handleEdit = (schedule) => {
+        const { h, m, s } = secondsToTime(schedule.interval_value || 0);
+        setTimeVal({ h, m, s });
+        setFormData({ name: schedule.name, type: schedule.type, duration: schedule.duration });
+        setEditId(schedule.id);
+        setIsCreating(true);
+    };
+
+    const resetForm = () => {
+        setIsCreating(false);
+        setEditId(null);
+        setFormData({ name: '', type: 'water', duration: 15 });
+    };
+
+    const handleSave = () => {
+        if (!formData.name) return showToast('error', 'Nama harus diisi', 'error');
+        const totalSec = timeToSeconds(timeVal.h, timeVal.m, timeVal.s);
+        if (totalSec <= 0) return showToast('error', 'Interval tidak boleh 0', 'error');
+
+        const payload = {
+            ...formData,
+            method: 'interval',
+            interval_value: totalSec,
+            time: '00:00',
+            days: []
+        };
+
+        if (editId) {
+            onUpdate(editId, payload);
+        } else {
+            onCreate(payload);
+        }
+        resetForm();
+    };
+
+    return (
+        <div className="space-y-6">
+            {!isCreating && (
+                <button onClick={() => setIsCreating(true)} className="w-full py-4 border-2 border-dashed border-primary/50 text-primary font-title-md rounded-2xl hover:bg-primary/5 flex items-center justify-center gap-2">
+                    <span className="material-symbols-outlined">add</span> Tambah Interval
+                </button>
+            )}
+
+            {isCreating && (
+                <div className="bg-surface-container-lowest p-6 rounded-3xl shadow-sm border border-outline-variant/30 space-y-6">
+                    <h3 className="font-title-md text-on-surface">{editId ? 'Edit Looping Interval' : 'Setup Looping Interval'}</h3>
+                    
+                    <WheelPicker 
+                        columns={[
+                            { name: 'h', options: Array.from({length: 24}, (_, i) => i) },
+                            { name: 'm', options: Array.from({length: 60}, (_, i) => i) },
+                            { name: 's', options: Array.from({length: 60}, (_, i) => i) }
+                        ]}
+                        value={timeVal}
+                        onChange={(col, val) => setTimeVal(prev => ({ ...prev, [col]: val }))}
+                    />
+                    
+                    <input type="text" placeholder="Nama Interval" className="w-full bg-surface-container-low p-4 rounded-xl text-on-surface outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                    
+                    <div className="flex gap-2">
+                        <button type="button" onClick={() => setFormData({...formData, type: 'water'})} className={`flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 ${formData.type === 'water' ? 'bg-primary-fixed text-primary' : 'bg-surface-container-low text-outline'}`}>Air</button>
+                        <button type="button" onClick={() => setFormData({...formData, type: 'fertilizer'})} className={`flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 ${formData.type === 'fertilizer' ? 'bg-secondary-fixed text-secondary' : 'bg-surface-container-low text-outline'}`}>Pupuk</button>
                     </div>
-                    <div className="grid grid-cols-2 border-t border-outline-variant/30">
-                        <button
-                            className="p-md font-title-md text-on-surface-variant hover:bg-surface-container-low transition-colors"
-                            onClick={() => setIsDeleteOpen(false)}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleDeleteConfirm}
-                            className="p-md font-title-md text-error hover:bg-error-container/50 transition-colors border-l border-outline-variant/30"
-                        >
-                            Delete
-                        </button>
+
+                    <div className="flex gap-4 pt-4">
+                        <button onClick={resetForm} className="flex-1 py-4 bg-surface-container-high text-on-surface rounded-xl font-bold">Batal</button>
+                        <button onClick={handleSave} className="flex-1 py-4 bg-primary text-white rounded-xl font-bold shadow-lg">Simpan</button>
                     </div>
+                </div>
+            )}
+
+            <div className="space-y-4">
+                {schedules.map(s => {
+                    const {h,m,s:sec} = secondsToTime(s.interval_value || 0);
+                    const timeStr = `${h}h ${m}m ${sec}s`;
+                    return <StandardCard key={s.id} schedule={s} onToggle={onToggle} onDelete={onDelete} onEdit={() => handleEdit(s)} customSub={`Tiap ${timeStr}`} />;
+                })}
+            </div>
+        </div>
+    );
+}
+
+// ==========================================
+// SHARED STANDARD CARD
+// ==========================================
+function StandardCard({ schedule, onToggle, onDelete, onEdit, customSub }) {
+    const isAir = schedule.type === 'water';
+    const stripClass = schedule.enabled ? (isAir ? 'strip-green' : 'strip-blue') : 'strip-gray';
+    const opacityClass = schedule.enabled ? '' : 'opacity-50';
+
+    return (
+        <div className={`bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden ${stripClass} ${opacityClass} relative`}>
+            <div className="p-5 flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isAir ? 'bg-primary-fixed text-primary' : 'bg-secondary-fixed text-secondary'}`}>
+                        <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
+                            {isAir ? 'water_drop' : 'science'}
+                        </span>
+                    </div>
+                    <div>
+                        <h3 className="font-title-md text-on-surface">{schedule.name}</h3>
+                        <p className="text-sm font-bold text-outline">
+                            {customSub ? customSub : schedule.time} {schedule.method === 'alarm' && schedule.days && `• ${schedule.days.map(d=>d[0]).join(', ')}`}
+                        </p>
+                    </div>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                    <div className={`toggle-track sm ${schedule.enabled ? 'on' : ''}`} onClick={() => onToggle(schedule.id)}>
+                        <div className="toggle-thumb"></div>
+                    </div>
+                    <button onClick={onEdit} className="p-2 text-outline hover:text-primary transition-colors">
+                        <span className="material-symbols-outlined text-[20px]">edit</span>
+                    </button>
+                    <button onClick={() => onDelete(schedule.id)} className="p-2 text-outline hover:text-error transition-colors">
+                        <span className="material-symbols-outlined text-[20px]">delete</span>
+                    </button>
                 </div>
             </div>
         </div>

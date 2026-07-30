@@ -37,8 +37,8 @@ export default function History() {
         const today = new Date().toISOString().split('T')[0];
         const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
-        if (dateKey === today) return 'Today';
-        if (dateKey === yesterday) return 'Yesterday';
+        if (dateKey === today) return 'Hari Ini';
+        if (dateKey === yesterday) return 'Kemarin';
 
         // Parse key
         return formatDate(dateKey + 'T00:00:00');
@@ -47,18 +47,18 @@ export default function History() {
     const grouped = getGroupedHistory();
 
     const filters = [
-        { id: 'all', label: 'All', icon: null },
-        { id: 'water', label: 'Irrigation', icon: 'water_drop' },
-        { id: 'fertilizer', label: 'Fertilizer', icon: 'science' },
-        { id: 'alert', label: 'Alerts', icon: 'warning' }
+        { id: 'all', label: 'Semua', icon: null },
+        { id: 'water', label: 'Irigasi', icon: 'water_drop' },
+        { id: 'fertilizer', label: 'Pupuk', icon: 'science' },
+        { id: 'alert', label: 'Peringatan', icon: 'warning' }
     ];
 
     return (
         <div className="space-y-lg">
             {/* Header */}
             <div>
-                <p className="font-label-caps text-label-caps text-outline uppercase tracking-widest mb-1">Activity Tracker</p>
-                <h1 className="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Activity History</h1>
+                <p className="font-label-caps text-label-caps text-outline uppercase tracking-widest mb-1">Pelacak Aktivitas</p>
+                <h1 className="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Riwayat Aktivitas</h1>
             </div>
 
             {/* Filter Chips */}
@@ -89,8 +89,8 @@ export default function History() {
             {Object.keys(grouped).length === 0 ? (
                 <div className="text-center py-xl">
                     <span className="material-symbols-outlined empty-state-icon">history_toggle_off</span>
-                    <p className="font-title-md text-title-md text-outline mt-3">No Activity Recorded</p>
-                    <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">Your irrigation and fertilizer actions will appear here.</p>
+                    <p className="font-title-md text-title-md text-outline mt-3">Tidak Ada Riwayat Aktivitas</p>
+                    <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">Aktivitas irigasi dan pemupukan Anda akan muncul di sini.</p>
                 </div>
             ) : (
                 <div id="historyList" className="space-y-lg">
@@ -103,7 +103,7 @@ export default function History() {
                                         {getDateLabel(dateKey)}
                                     </span>
                                     <div className="flex-1 h-px bg-outline-variant/40"></div>
-                                    <span className="font-label-caps text-label-caps text-outline">{items.length} events</span>
+                                    <span className="font-label-caps text-label-caps text-outline">{items.length} kejadian</span>
                                 </div>
                                 <div className="space-y-2">
                                     {items
@@ -118,21 +118,21 @@ export default function History() {
                                                 statusHTML = (
                                                     <span className="flex items-center gap-1 font-label-bold text-label-bold status-success">
                                                         <span className="material-symbols-outlined" style={{ fontSize: '14px', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                                                        Success
+                                                        Berhasil
                                                     </span>
                                                 );
                                             } else if (item.status === 'failed') {
                                                 statusHTML = (
                                                     <span className="flex items-center gap-1 font-label-bold text-label-bold status-failed">
                                                         <span className="material-symbols-outlined" style={{ fontSize: '14px', fontVariationSettings: "'FILL' 1" }}>error</span>
-                                                        Failed
+                                                        Gagal
                                                     </span>
                                                 );
                                             } else {
                                                 statusHTML = (
                                                     <span className="flex items-center gap-1 font-label-bold text-label-bold status-pending">
                                                         <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>schedule</span>
-                                                        Pending
+                                                        Tertunda
                                                     </span>
                                                 );
                                             }

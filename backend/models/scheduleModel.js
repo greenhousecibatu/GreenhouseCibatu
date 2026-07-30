@@ -22,19 +22,19 @@ const ScheduleModel = {
     },
 
     create: async (data) => {
-        const { name, type, time, duration, days } = data;
+        const { name, type, method = 'alarm', time = null, duration, days = null, interval_value = null } = data;
         const [result] = await db.query(
-            'INSERT INTO schedules (name, type, time, duration, days, enabled) VALUES (?, ?, ?, ?, ?, 1)',
-            [name, type, time, duration, JSON.stringify(days)]
+            'INSERT INTO schedules (name, type, method, time, duration, days, interval_value, enabled) VALUES (?, ?, ?, ?, ?, ?, ?, 1)',
+            [name, type, method, time, duration, days ? JSON.stringify(days) : null, interval_value]
         );
         return ScheduleModel.getById(result.insertId);
     },
 
     update: async (id, data) => {
-        const { name, type, time, duration, days } = data;
+        const { name, type, method = 'alarm', time = null, duration, days = null, interval_value = null } = data;
         await db.query(
-            'UPDATE schedules SET name = ?, type = ?, time = ?, duration = ?, days = ? WHERE id = ?',
-            [name, type, time, duration, JSON.stringify(days), id]
+            'UPDATE schedules SET name = ?, type = ?, method = ?, time = ?, duration = ?, days = ?, interval_value = ? WHERE id = ?',
+            [name, type, method, time, duration, days ? JSON.stringify(days) : null, interval_value, id]
         );
         return ScheduleModel.getById(id);
     },

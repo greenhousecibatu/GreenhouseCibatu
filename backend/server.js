@@ -61,18 +61,25 @@ async function fetchWeather() {
     }
 }
 
-// Test connection on startup
-async function testConnection() {
-    try {
-        const conn = await db.getConnection();
-        console.log('✅ MySQL database connected successfully');
-        conn.release();
-        return true;
-    } catch (err) {
-        console.error('❌ Database connection failed:', err.message);
-        console.error('   Make sure MySQL is running and database "agrilog" exists.');
-        console.error('   Setup database using: mysql -u root < db/schema.sql');
-        return false;
+// Test connection on startup with retry
+async function testConnection(retries = 10, delay = 3000) {
+    for (let i = 1; i <= retries; i++) {
+        try {
+            const conn = await db.getConnection();
+            console.log('✅ MySQL database connected successfully');
+            conn.release();
+            return true;
+        } catch (err) {
+            console.error(`⏳ Database connection attempt ${i}/${retries} failed: ${err.message}`);
+            if (i < retries) {
+                console.log(`   Retrying in ${delay / 1000}s...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            } else {
+                console.error('❌ All connection attempts failed.');
+                console.error('   Make sure MySQL is running and database "agrilog" exists.');
+                return false;
+            }
+        }
     }
 }
 

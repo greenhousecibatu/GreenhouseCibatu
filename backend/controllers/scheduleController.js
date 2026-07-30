@@ -18,18 +18,28 @@ const ScheduleController = {
 
     create: async (req, res) => {
         try {
-            const { name, type, time, duration, days } = req.body;
-            if (!name || !type || !time || !duration || !days || !days.length) {
+            const { name, type, method = 'alarm', time, duration, days, interval_value } = req.body;
+            if (!name || !type || !duration) {
                 return res.status(400).json({ error: 'Missing required fields' });
             }
+            if (method === 'alarm' && (!time || !days || !days.length)) {
+                return res.status(400).json({ error: 'Alarm method requires time and days' });
+            }
+            if ((method === 'countdown' || method === 'interval') && !interval_value) {
+                return res.status(400).json({ error: 'Countdown/Interval method requires interval_value' });
+            }
 
-            const schedule = await ScheduleModel.create({ name, type, time, duration, days });
+            const schedule = await ScheduleModel.create({ name, type, method, time, duration, days, interval_value });
 
             // Create notification
+            let timeString = time;
+            if (method === 'countdown') timeString = `in ${interval_value} minutes`;
+            if (method === 'interval') timeString = `every ${interval_value} minutes`;
+            
             await NotificationModel.create({
                 type: 'info',
                 title: 'New Schedule Created',
-                message: `"${name}" scheduled at ${time} for ${duration} min.`
+                message: `"${name}" scheduled ${timeString} for ${duration} min.`
             });
 
             res.status(201).json(schedule);
@@ -42,9 +52,9 @@ const ScheduleController = {
     update: async (req, res) => {
         try {
             const { id } = req.params;
-            const { name, type, time, duration, days } = req.body;
+            const { name, type, method = 'alarm', time, duration, days, interval_value } = req.body;
 
-            const updated = await ScheduleModel.update(id, { name, type, time, duration, days });
+            const updated = await ScheduleModel.update(id, { name, type, method, time, duration, days, interval_value });
             if (!updated) return res.status(404).json({ error: 'Schedule not found' });
 
             res.json(updated);

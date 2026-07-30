@@ -17,6 +17,63 @@ const SolenoidController = {
         }
     },
 
+    setMode: async (req, res) => {
+        try {
+            const { mode } = req.body; // 'off', 'water', 'fertilizer'
+            if (!['off', 'water', 'fertilizer'].includes(mode)) {
+                return res.status(400).json({ error: 'Invalid mode' });
+            }
+
+            const solenoids = await SolenoidModel.getAll();
+            const waterSol = solenoids.find(s => s.type === 'water');
+            const fertilizerSol = solenoids.find(s => s.type === 'fertilizer');
+
+            if (!waterSol || !fertilizerSol) {
+                return res.status(404).json({ error: 'Solenoids not properly configured' });
+            }
+
+            let action = '';
+            
+            if (mode === 'off') {
+                if (waterSol.is_active) await SolenoidModel.updateState(waterSol.id, 0);
+                if (fertilizerSol.is_active) await SolenoidModel.updateState(fertilizerSol.id, 0);
+                action = 'Semua Katup Dimatikan';
+            } else if (mode === 'water') {
+                if (fertilizerSol.is_active) await SolenoidModel.updateState(fertilizerSol.id, 0);
+                if (!waterSol.is_active) await SolenoidModel.updateState(waterSol.id, 1);
+                action = 'Katup Air Dinyalakan';
+            } else if (mode === 'fertilizer') {
+                if (waterSol.is_active) await SolenoidModel.updateState(waterSol.id, 0);
+                if (!fertilizerSol.is_active) await SolenoidModel.updateState(fertilizerSol.id, 1);
+                action = 'Katup Pupuk Dinyalakan';
+            }
+
+            // Log event to history
+            await HistoryModel.create({
+                type: mode === 'off' ? 'water' : mode,
+                action: action,
+                detail: `Manual Mode: ${mode.toUpperCase()}`,
+                duration: '—',
+                status: 'success'
+            });
+
+            // Create notification
+            if (mode !== 'off') {
+                await NotificationModel.create({
+                    type: 'success',
+                    title: action,
+                    message: `Katup ${mode === 'water' ? 'air' : 'pupuk'} telah diaktifkan secara manual.`
+                });
+            }
+
+            const updatedSolenoids = await SolenoidModel.getAll();
+            res.json({ message: 'Mode updated successfully', mode, solenoids: updatedSolenoids });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ error: 'Failed to set solenoid mode' });
+        }
+    },
+
     toggle: async (req, res) => {
         try {
             const { id } = req.params;
