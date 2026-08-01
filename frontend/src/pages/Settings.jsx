@@ -1,8 +1,26 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 
 export default function Settings({ onLogout }) {
-    const { showToast, refreshSemua, authFetch, setIsTourActive, setCurrentPage } = useApp();
+    const { showToast, refreshSemua, authFetch, setIsTourActive, setCurrentPage,
+        mqttConnected, mqttConfig, saveMqttConfig, connectMqtt, disconnectMqtt 
+    } = useApp();
+
+    const [localMqttConfig, setLocalMqttConfig] = useState(mqttConfig);
+
+    useEffect(() => {
+        setLocalMqttConfig(mqttConfig);
+    }, [mqttConfig]);
+
+    const handleMqttChange = (e) => {
+        const { name, value } = e.target;
+        setLocalMqttConfig(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSaveAndConnect = () => {
+        saveMqttConfig(localMqttConfig);
+        setTimeout(() => connectMqtt(), 100);
+    };
 
     const exportData = async () => {
         try {
@@ -110,6 +128,70 @@ export default function Settings({ onLogout }) {
                         </div>
                         <div className="toggle-track on" onClick={(e) => e.currentTarget.classList.toggle('on')}>
                             <div className="toggle-thumb"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* MQTT Settings */}
+            <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/20 overflow-hidden">
+                <div className="p-lg border-b border-outline-variant/20">
+                    <h3 className="font-title-md text-title-md text-on-surface mb-1">Integrasi Broker MQTT</h3>
+                    <p className="font-body-sm text-body-sm text-on-surface-variant">Hubungkan dashboard ke broker MQTT via Secure WebSocket untuk integrasi hardware IoT yang sesungguhnya.</p>
+                </div>
+                <div className="p-lg space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block font-label-bold text-label-bold text-on-surface mb-1">Host Broker</label>
+                            <input type="text" name="host" value={localMqttConfig.host} onChange={handleMqttChange} placeholder="broker.hivemq.com" className="w-full bg-surface border border-outline-variant rounded-lg p-2 font-body-sm text-on-surface" />
+                        </div>
+                        <div>
+                            <label className="block font-label-bold text-label-bold text-on-surface mb-1">Port WebSocket (SSL)</label>
+                            <input type="text" name="port" value={localMqttConfig.port} onChange={handleMqttChange} placeholder="8884" className="w-full bg-surface border border-outline-variant rounded-lg p-2 font-body-sm text-on-surface" />
+                            <p className="text-[10px] text-outline mt-1">Gunakan 8884 untuk secure (wss), atau 8000 (ws)</p>
+                        </div>
+                        <div>
+                            <label className="block font-label-bold text-label-bold text-on-surface mb-1">WebSocket Path</label>
+                            <input type="text" name="path" value={localMqttConfig.path} onChange={handleMqttChange} placeholder="/mqtt" className="w-full bg-surface border border-outline-variant rounded-lg p-2 font-body-sm text-on-surface" />
+                        </div>
+                        <div>
+                            <label className="block font-label-bold text-label-bold text-on-surface mb-1">Client ID</label>
+                            <input type="text" name="clientId" value={localMqttConfig.clientId} onChange={handleMqttChange} placeholder="Acak otomatis jika kosong" className="w-full bg-surface border border-outline-variant rounded-lg p-2 font-body-sm text-on-surface" />
+                        </div>
+                        <div>
+                            <label className="block font-label-bold text-label-bold text-on-surface mb-1">Username (Opsional)</label>
+                            <input type="text" name="username" value={localMqttConfig.username} onChange={handleMqttChange} placeholder="Kosongkan jika publik" className="w-full bg-surface border border-outline-variant rounded-lg p-2 font-body-sm text-on-surface" />
+                        </div>
+                        <div>
+                            <label className="block font-label-bold text-label-bold text-on-surface mb-1">Password (Opsional)</label>
+                            <input type="password" name="password" value={localMqttConfig.password} onChange={handleMqttChange} placeholder="Kosongkan jika publik" className="w-full bg-surface border border-outline-variant rounded-lg p-2 font-body-sm text-on-surface" />
+                        </div>
+                        <div>
+                            <label className="block font-label-bold text-label-bold text-on-surface mb-1">Topik Sub Telemetri</label>
+                            <input type="text" name="subTopic" value={localMqttConfig.subTopic} onChange={handleMqttChange} placeholder="greenhouse-cibatu/+/telemetry" className="w-full bg-surface border border-outline-variant rounded-lg p-2 font-body-sm text-on-surface" />
+                        </div>
+                        <div>
+                            <label className="block font-label-bold text-label-bold text-on-surface mb-1">Topik Pub Irigasi</label>
+                            <input type="text" name="pubTopic" value={localMqttConfig.pubTopic} onChange={handleMqttChange} placeholder="greenhouse-cibatu/irigasi/+/command" className="w-full bg-surface border border-outline-variant rounded-lg p-2 font-body-sm text-on-surface" />
+                        </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between mt-6 pt-4 border-t border-outline-variant/20">
+                        <div className="flex items-center gap-2">
+                            <div className={`w-3 h-3 rounded-full ${mqttConnected ? 'bg-primary' : 'bg-error'}`}></div>
+                            <span className="font-label-bold text-label-bold text-on-surface">
+                                {mqttConnected ? 'Terhubung' : 'Terputus'}
+                            </span>
+                        </div>
+                        <div className="flex gap-2">
+                            {mqttConnected && (
+                                <button onClick={disconnectMqtt} className="px-4 py-2 border border-outline-variant text-on-surface rounded-lg font-label-bold hover:bg-surface-variant transition-colors">
+                                    Putuskan
+                                </button>
+                            )}
+                            <button onClick={handleSaveAndConnect} className="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-bold hover:bg-primary/90 transition-colors shadow-sm">
+                                {mqttConnected ? 'Perbarui & Reconnect' : 'Hubungkan Broker'}
+                            </button>
                         </div>
                     </div>
                 </div>

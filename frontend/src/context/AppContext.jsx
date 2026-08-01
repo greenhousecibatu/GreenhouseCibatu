@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { MqttService } from '../services/mqttService';
 
 const AppContext = createContext();
 
@@ -15,6 +16,54 @@ export const AppProvider = ({ children }) => {
     const [timers, setTimers] = useState({});
     const [deferredPrompt, setDeferredPrompt] = useState(null);
     const [isTourActive, setIsTourActive] = useState(false);
+
+    // ---- MQTT State ----
+    const [mqttConnected, setMqttConnected] = useState(false);
+    const [mqttConfig, setMqttConfig] = useState(() => ({
+        host: localStorage.getItem('mqtt_host') || '',
+        port: localStorage.getItem('mqtt_port') || '8884',
+        path: localStorage.getItem('mqtt_path') || '/mqtt',
+        clientId: localStorage.getItem('mqtt_clientId') || '',
+        username: localStorage.getItem('mqtt_username') || '',
+        password: localStorage.getItem('mqtt_password') || '',
+        subTopic: localStorage.getItem('mqtt_subTopic') || 'greenhouse/telemetry',
+        pubTopic: localStorage.getItem('mqtt_pubTopic') || 'greenhouse/command',
+    }));
+
+    const saveMqttConfig = useCallback((newConfig) => {
+        setMqttConfig(newConfig);
+        Object.keys(newConfig).forEach(key => {
+            localStorage.setItem(`mqtt_${key}`, newConfig[key]);
+        });
+    }, []);
+
+    const connectMqtt = useCallback(() => {
+        if (!mqttConfig.host) {
+            showToast('error', 'Host Broker belum diisi', 'error');
+            return;
+        }
+        MqttService.connect(
+            mqttConfig,
+            () => {
+                setMqttConnected(true);
+                showToast('sensors', 'Terhubung ke MQTT Broker', 'success');
+            },
+            (topic, message) => {
+                // Future: Handle incoming telemetry from ESP32
+                console.log('Incoming MQTT:', topic, message);
+            },
+            (err) => {
+                setMqttConnected(false);
+                // showToast('error', `Gagal konek MQTT: ${err.message || 'Error'}`, 'error'); // Can be noisy
+            }
+        );
+    }, [mqttConfig]);
+
+    const disconnectMqtt = useCallback(() => {
+        MqttService.disconnect();
+        setMqttConnected(false);
+        showToast('sensors_off', 'Terputus dari MQTT Broker', 'neutral');
+    }, []);
 
     // ---- PWA Install Listener ----
     useEffect(() => {
@@ -181,6 +230,14 @@ export const AppProvider = ({ children }) => {
     // ---- Solenoid Control ----
     const setManualMode = async (mode) => {
         try {
+            // IF MQTT IS CONNECTED, PUBLISH TO MQTT FOR ZERO-DELAY
+            if (mqttConnected && mqttConfig.pubTopic) {
+                const payload = { action: 'set_mode', mode: mode };
+                MqttService.publish(mqttConfig.pubTopic, payload);
+                console.log('[MQTT] Published mode:', mode);
+            }
+
+            // ALWAYS FALLBACK TO HTTP API TO UPDATE DATABASE & SYNC STATE
             const res = await authFetch('/api/solenoids/mode', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -195,7 +252,7 @@ export const AppProvider = ({ children }) => {
                 
                 showToast(
                     mode === 'off' ? 'cancel' : 'check_circle',
-                    message,
+                    message + (mqttConnected ? ' (MQTT)' : ''),
                     mode === 'off' ? 'neutral' : 'success'
                 );
                 
@@ -452,7 +509,12 @@ export const AppProvider = ({ children }) => {
             deferredPrompt,
             installPwa,
             isTourActive,
-            setIsTourActive
+            setIsTourActive,
+            mqttConnected,
+            mqttConfig,
+            saveMqttConfig,
+            connectMqtt,
+            disconnectMqtt
         }}>
             {children}
         </AppContext.Provider>
