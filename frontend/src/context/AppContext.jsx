@@ -419,6 +419,23 @@ export const AppProvider = ({ children }) => {
         return () => clearInterval(interval);
     }, [refreshSemua, fetchSolenoids, fetchHistory, fetchNotifications, fetchUnreadCount, fetchLatestWeather]);
 
+    // Timer control functions
+    const updateTimer = useCallback((id, data) => {
+        setTimers(prev => ({ ...prev, [id]: { ...prev[id], ...data } }));
+    }, []);
+
+    const initTimer = useCallback((id, total) => {
+        setTimers(prev => ({ ...prev, [id]: { remaining: total, total, isPaused: false } }));
+    }, []);
+
+    const removeTimer = useCallback((id) => {
+        setTimers(prev => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+        });
+    }, []);
+
     // Mutable ref for toggle and delete to use inside setInterval safely
     const toggleRef = useRef(toggleScheduleEnabled);
     useEffect(() => { toggleRef.current = toggleScheduleEnabled; }, [toggleScheduleEnabled]);
@@ -457,23 +474,6 @@ export const AppProvider = ({ children }) => {
         }, 1000);
         return () => clearInterval(intervalId);
     }, [playAlarmSound, showToast]);
-
-    // Timer control functions
-    const updateTimer = useCallback((id, data) => {
-        setTimers(prev => ({ ...prev, [id]: { ...prev[id], ...data } }));
-    }, []);
-
-    const initTimer = useCallback((id, total) => {
-        setTimers(prev => ({ ...prev, [id]: { remaining: total, total, isPaused: false } }));
-    }, []);
-
-    const removeTimer = useCallback((id) => {
-        setTimers(prev => {
-            const next = { ...prev };
-            delete next[id];
-            return next;
-        });
-    }, []);
 
     // ---- 2-Minute Auto-Off Timer for Manual Mode ----
     useEffect(() => {
