@@ -409,9 +409,11 @@ export const AppProvider = ({ children }) => {
         return () => clearInterval(interval);
     }, [refreshSemua, fetchSolenoids, fetchHistory, fetchNotifications, fetchUnreadCount, fetchLatestWeather]);
 
-    // Mutable ref for toggle to use inside setInterval safely
+    // Mutable ref for toggle and delete to use inside setInterval safely
     const toggleRef = useRef(toggleScheduleEnabled);
     useEffect(() => { toggleRef.current = toggleScheduleEnabled; }, [toggleScheduleEnabled]);
+    const deleteRef = useRef(deleteSchedule);
+    useEffect(() => { deleteRef.current = deleteSchedule; }, [deleteSchedule]);
 
     // ---- Global Countdown Ticker ----
     useEffect(() => {
@@ -428,7 +430,7 @@ export const AppProvider = ({ children }) => {
                             playAlarmSound();
                             showToast('notifications_active', 'Hitung mundur selesai!', 'success');
                             if (window.navigator.vibrate) window.navigator.vibrate([200, 100, 200]);
-                            setTimeout(() => toggleRef.current(id), 0);
+                            setTimeout(() => deleteRef.current(id), 0);
                         }
                     }
                 }

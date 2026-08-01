@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 const solenoidSchema = new mongoose.Schema({
     _id: { type: Number, required: true },
     name: { type: String, required: true },
+    type: { type: String, required: true }, // 'water' or 'fertilizer'
     is_active: { type: Boolean, default: false }
 });
 
@@ -18,8 +19,8 @@ const initializeDefaults = async () => {
         const count = await Solenoid.countDocuments();
         if (count === 0) {
             await Solenoid.insertMany([
-                { _id: 1, name: 'Solenoid Air', is_active: false },
-                { _id: 2, name: 'Solenoid Pupuk', is_active: false }
+                { _id: 1, name: 'Solenoid Air', type: 'water', is_active: false },
+                { _id: 2, name: 'Solenoid Pupuk', type: 'fertilizer', is_active: false }
             ]);
             console.log('✅ Default solenoids initialized in MongoDB.');
         }
@@ -31,7 +32,16 @@ const initializeDefaults = async () => {
 const SolenoidModel = {
     getAll: async () => {
         await initializeDefaults();
-        return await Solenoid.find().sort({ _id: 1 }).lean();
+        const docs = await Solenoid.find().sort({ _id: 1 }).lean();
+        // Migration for old docs without type
+        for (let doc of docs) {
+            if (!doc.type) {
+                const type = doc._id === 1 ? 'water' : 'fertilizer';
+                await Solenoid.findByIdAndUpdate(doc._id, { type });
+                doc.type = type;
+            }
+        }
+        return docs;
     },
 
     getById: async (id) => {
