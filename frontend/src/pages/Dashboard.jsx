@@ -50,7 +50,7 @@ export default function Dashboard() {
                 <h2 className="font-title-md text-title-md text-on-surface px-1">Kontrol Manual</h2>
                 
                 {(() => {
-                    const activeSolenoid = solenoids.find(s => s.is_active === 1);
+                    const activeSolenoid = solenoids.find(s => s.is_active === 1 || s.is_active === true);
                     const currentMode = activeSolenoid ? activeSolenoid.type : 'off';
 
                     return (

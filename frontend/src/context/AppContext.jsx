@@ -457,19 +457,20 @@ export const AppProvider = ({ children }) => {
         });
     }, []);
 
-    // ---- 5-Minute Warning Timer ----
+    // ---- 2-Minute Auto-Off Timer for Manual Mode ----
     useEffect(() => {
-        const activeSolenoid = solenoids.find(s => s.is_active === 1);
+        const activeSolenoid = solenoids.find(s => s.is_active === 1 || s.is_active === true);
         let timer = null;
 
         if (activeSolenoid) {
             timer = setTimeout(() => {
+                setManualMode('off');
                 showToast(
                     'warning',
-                    `Peringatan: Katup ${activeSolenoid.type === 'water' ? 'Air' : 'Pupuk'} sudah menyala selama 5 menit!`,
-                    'error'
+                    `Keamanan Sistem: Katup ${activeSolenoid.type === 'water' ? 'Air' : 'Pupuk'} dimatikan otomatis karena menyala lebih dari 2 menit.`,
+                    'neutral'
                 );
-            }, 5 * 60 * 1000); // 5 minutes
+            }, 2 * 60 * 1000); // 2 minutes
         }
 
         return () => {
