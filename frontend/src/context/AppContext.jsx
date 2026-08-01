@@ -296,6 +296,16 @@ export const AppProvider = ({ children }) => {
             if (res.ok) {
                 const updated = await res.json();
                 setSchedules(prev => prev.map(s => s.id === updated.id ? updated : s));
+                
+                // Automatically turn on/off the pump for countdown schedules
+                if (updated.method === 'countdown') {
+                    if (updated.enabled) {
+                        setManualMode(updated.type);
+                    } else {
+                        setManualMode('off');
+                    }
+                }
+
                 showToast(
                     updated.enabled ? 'toggle_on' : 'toggle_off',
                     `"${updated.name}" ${updated.enabled ? 'diaktifkan' : 'dinonaktifkan'}`,
@@ -414,6 +424,10 @@ export const AppProvider = ({ children }) => {
     useEffect(() => { toggleRef.current = toggleScheduleEnabled; }, [toggleScheduleEnabled]);
     const deleteRef = useRef(deleteSchedule);
     useEffect(() => { deleteRef.current = deleteSchedule; }, [deleteSchedule]);
+    const setManualModeRef = useRef(setManualMode);
+    useEffect(() => { setManualModeRef.current = setManualMode; }, [setManualMode]);
+    const removeTimerRef = useRef();
+    useEffect(() => { removeTimerRef.current = removeTimer; }, [removeTimer]);
 
     // ---- Global Countdown Ticker ----
     useEffect(() => {
@@ -430,7 +444,11 @@ export const AppProvider = ({ children }) => {
                             playAlarmSound();
                             showToast('notifications_active', 'Hitung mundur selesai!', 'success');
                             if (window.navigator.vibrate) window.navigator.vibrate([200, 100, 200]);
-                            setTimeout(() => deleteRef.current(id), 0);
+                            setTimeout(() => {
+                                setManualModeRef.current('off');
+                                deleteRef.current(id);
+                                if (removeTimerRef.current) removeTimerRef.current(id);
+                            }, 0);
                         }
                     }
                 }
@@ -460,10 +478,12 @@ export const AppProvider = ({ children }) => {
     // ---- 2-Minute Auto-Off Timer for Manual Mode ----
     useEffect(() => {
         const activeSolenoid = solenoids.find(s => s.is_active === 1 || s.is_active === true);
-        let timer = null;
+        const hasActiveCountdown = Object.values(timers).some(t => t.remaining > 0 && !t.isPaused);
+        
+        let autoOffTimer = null;
 
-        if (activeSolenoid) {
-            timer = setTimeout(() => {
+        if (activeSolenoid && !hasActiveCountdown) {
+            autoOffTimer = setTimeout(() => {
                 setManualMode('off');
                 showToast(
                     'warning',
@@ -474,9 +494,9 @@ export const AppProvider = ({ children }) => {
         }
 
         return () => {
-            if (timer) clearTimeout(timer);
+            if (autoOffTimer) clearTimeout(autoOffTimer);
         };
-    }, [solenoids, showToast]);
+    }, [solenoids, timers, showToast]);
 
 
     return (
