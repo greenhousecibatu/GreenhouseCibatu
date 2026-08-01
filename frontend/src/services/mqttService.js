@@ -11,7 +11,7 @@ export const MqttService = {
             client.end();
         }
 
-        const { host, port, path, clientId, username, password, subTopic } = config;
+        const { host, port, path, clientId, username, password, subTopic, statusTopic } = config;
         
         // Construct WebSocket URL
         // e.g. wss://broker.hivemq.com:8884/mqtt
@@ -39,10 +39,14 @@ export const MqttService = {
 
         client.on('connect', () => {
             console.log('[MQTT] Connected to Broker!');
-            if (subTopic) {
-                client.subscribe(subTopic, (err) => {
+            const topicsToSub = [];
+            if (subTopic) topicsToSub.push(subTopic);
+            if (statusTopic) topicsToSub.push(statusTopic);
+
+            if (topicsToSub.length > 0) {
+                client.subscribe(topicsToSub, (err) => {
                     if (err) console.error('[MQTT] Subscription error:', err);
-                    else console.log(`[MQTT] Subscribed to ${subTopic}`);
+                    else console.log(`[MQTT] Subscribed to ${topicsToSub.join(', ')}`);
                 });
             }
             if (onConnect) onConnect();

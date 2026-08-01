@@ -19,15 +19,17 @@ export const AppProvider = ({ children }) => {
 
     // ---- MQTT State ----
     const [mqttConnected, setMqttConnected] = useState(false);
+    const [espOnline, setEspOnline] = useState(false); // Track ESP32 online/offline
     const [mqttConfig, setMqttConfig] = useState(() => ({
-        host: localStorage.getItem('mqtt_host') || '',
+        host: localStorage.getItem('mqtt_host') || 'broker.hivemq.com',
         port: localStorage.getItem('mqtt_port') || '8884',
         path: localStorage.getItem('mqtt_path') || '/mqtt',
-        clientId: localStorage.getItem('mqtt_clientId') || '',
+        clientId: localStorage.getItem('mqtt_clientId') || `Web_GH_${Math.random().toString(16).slice(2, 8)}`,
         username: localStorage.getItem('mqtt_username') || '',
         password: localStorage.getItem('mqtt_password') || '',
-        subTopic: localStorage.getItem('mqtt_subTopic') || 'greenhouse/telemetry',
-        pubTopic: localStorage.getItem('mqtt_pubTopic') || 'greenhouse/command',
+        subTopic: localStorage.getItem('mqtt_subTopic') || 'greenhouse-cibatu/sensor/telemetry',
+        pubTopic: localStorage.getItem('mqtt_pubTopic') || 'greenhouse-cibatu/irigasi/kontrol/command',
+        statusTopic: localStorage.getItem('mqtt_statusTopic') || 'greenhouse-cibatu/status',
     }));
 
     const saveMqttConfig = useCallback((newConfig) => {
@@ -49,8 +51,18 @@ export const AppProvider = ({ children }) => {
                 showToast('sensors', 'Terhubung ke MQTT Broker', 'success');
             },
             (topic, message) => {
-                // Future: Handle incoming telemetry from ESP32
                 console.log('Incoming MQTT:', topic, message);
+                // Handle LWT Status from ESP32
+                if (topic === mqttConfig.statusTopic) {
+                    if (message === 'online') {
+                        setEspOnline(true);
+                        showToast('wifi', 'ESP32 Terhubung', 'success');
+                    } else if (message === 'offline') {
+                        setEspOnline(false);
+                        showToast('wifi_off', 'ESP32 Terputus (Offline)', 'error');
+                    }
+                }
+                // Future: Handle incoming telemetry from ESP32
             },
             (err) => {
                 setMqttConnected(false);
@@ -534,6 +546,7 @@ export const AppProvider = ({ children }) => {
             isTourActive,
             setIsTourActive,
             mqttConnected,
+            espOnline,
             mqttConfig,
             saveMqttConfig,
             connectMqtt,

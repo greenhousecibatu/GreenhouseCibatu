@@ -168,11 +168,15 @@ export default function Settings({ onLogout }) {
                         </div>
                         <div>
                             <label className="block font-label-bold text-label-bold text-on-surface mb-1">Topik Sub Telemetri</label>
-                            <input type="text" name="subTopic" value={localMqttConfig.subTopic} onChange={handleMqttChange} placeholder="greenhouse-cibatu/+/telemetry" className="w-full bg-surface border border-outline-variant rounded-lg p-2 font-body-sm text-on-surface" />
+                            <input type="text" name="subTopic" value={localMqttConfig.subTopic} onChange={handleMqttChange} placeholder="greenhouse-cibatu/sensor/telemetry" className="w-full bg-surface border border-outline-variant rounded-lg p-2 font-body-sm text-on-surface" />
                         </div>
                         <div>
                             <label className="block font-label-bold text-label-bold text-on-surface mb-1">Topik Pub Irigasi</label>
-                            <input type="text" name="pubTopic" value={localMqttConfig.pubTopic} onChange={handleMqttChange} placeholder="greenhouse-cibatu/irigasi/+/command" className="w-full bg-surface border border-outline-variant rounded-lg p-2 font-body-sm text-on-surface" />
+                            <input type="text" name="pubTopic" value={localMqttConfig.pubTopic} onChange={handleMqttChange} placeholder="greenhouse-cibatu/irigasi/kontrol/command" className="w-full bg-surface border border-outline-variant rounded-lg p-2 font-body-sm text-on-surface" />
+                        </div>
+                        <div className="md:col-span-2">
+                            <label className="block font-label-bold text-label-bold text-on-surface mb-1">Topik Status Alat (LWT)</label>
+                            <input type="text" name="statusTopic" value={localMqttConfig.statusTopic} onChange={handleMqttChange} placeholder="greenhouse-cibatu/status" className="w-full bg-surface border border-outline-variant rounded-lg p-2 font-body-sm text-on-surface" />
                         </div>
                     </div>
                     

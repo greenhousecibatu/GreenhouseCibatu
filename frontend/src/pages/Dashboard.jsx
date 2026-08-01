@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 
 export default function Dashboard() {
-    const { solenoids, setManualMode, history, setCurrentPage, weather, deferredPrompt, installPwa } = useApp();
+    const { solenoids, setManualMode, history, setCurrentPage, weather, deferredPrompt, installPwa, espOnline, mqttConnected } = useApp();
     const [confirmMode, setConfirmMode] = useState(null);
 
     const handleModeClick = (mode) => {
@@ -47,7 +47,15 @@ export default function Dashboard() {
             )}
             {/* Solenoid Controls */}
             <div className="space-y-card-gap">
-                <h2 className="font-title-md text-title-md text-on-surface px-1">Kontrol Manual</h2>
+                <div className="flex justify-between items-center px-1">
+                    <h2 className="font-title-md text-title-md text-on-surface">Kontrol Manual</h2>
+                    {mqttConnected && (
+                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-label-bold ${espOnline ? 'bg-success/10 text-success' : 'bg-error/10 text-error'}`}>
+                            <div className={`w-2 h-2 rounded-full ${espOnline ? 'bg-success' : 'bg-error'}`}></div>
+                            {espOnline ? 'Alat Online' : 'Alat Offline'}
+                        </div>
+                    )}
+                </div>
                 
                 {(() => {
                     const activeSolenoid = solenoids.find(s => s.is_active === 1 || s.is_active === true);
