@@ -136,6 +136,7 @@ const VoiceAssistant = () => {
                         setPendingCommand({
                             type: 'schedule',
                             scheduleData: {
+                                name: `Jadwal Suara ${type === 'water' ? 'Air' : 'Pupuk'} (${timeStrFormatted})`,
                                 type: type,
                                 time: timeStrFormatted,
                                 duration: finalDuration,
