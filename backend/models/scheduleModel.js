@@ -19,11 +19,13 @@ const Schedule = mongoose.model('Schedule', scheduleSchema);
 
 const ScheduleModel = {
     getAll: async () => {
-        return await Schedule.find().sort({ time: 1 }).lean();
+        const docs = await Schedule.find().sort({ time: 1 }).lean();
+        return docs.map(d => ({ ...d, id: d._id.toString() }));
     },
 
     getById: async (id) => {
-        return await Schedule.findById(id).lean();
+        const doc = await Schedule.findById(id).lean();
+        return doc ? { ...doc, id: doc._id.toString() } : null;
     },
 
     create: async (data) => {
@@ -32,7 +34,8 @@ const ScheduleModel = {
             name, type, method, time, duration, days, interval_value, enabled: true
         });
         await record.save();
-        return record.toObject();
+        const obj = record.toObject();
+        return { ...obj, id: obj._id.toString() };
     },
 
     update: async (id, data) => {
@@ -40,12 +43,12 @@ const ScheduleModel = {
         const updated = await Schedule.findByIdAndUpdate(id, {
             name, type, method, time, duration, days, interval_value
         }, { new: true }).lean();
-        return updated;
+        return updated ? { ...updated, id: updated._id.toString() } : null;
     },
 
     delete: async (id) => {
         const record = await Schedule.findByIdAndDelete(id).lean();
-        return record;
+        return record ? { ...record, id: record._id.toString() } : null;
     },
 
     toggleEnabled: async (id) => {
@@ -53,7 +56,8 @@ const ScheduleModel = {
         if (!record) return null;
         record.enabled = !record.enabled;
         await record.save();
-        return record.toObject();
+        const obj = record.toObject();
+        return { ...obj, id: obj._id.toString() };
     }
 };
 

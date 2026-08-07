@@ -35,16 +35,16 @@ const SolenoidController = {
             let action = '';
             
             if (mode === 'off') {
-                if (waterSol.is_active) await SolenoidModel.updateState(waterSol.id, 0);
-                if (fertilizerSol.is_active) await SolenoidModel.updateState(fertilizerSol.id, 0);
+                if (waterSol.is_active) await SolenoidModel.updateState(waterSol._id, false);
+                if (fertilizerSol.is_active) await SolenoidModel.updateState(fertilizerSol._id, false);
                 action = 'Semua Katup Dimatikan';
             } else if (mode === 'water') {
-                if (fertilizerSol.is_active) await SolenoidModel.updateState(fertilizerSol.id, 0);
-                if (!waterSol.is_active) await SolenoidModel.updateState(waterSol.id, 1);
+                if (fertilizerSol.is_active) await SolenoidModel.updateState(fertilizerSol._id, false);
+                if (!waterSol.is_active) await SolenoidModel.updateState(waterSol._id, true);
                 action = 'Katup Air Dinyalakan';
             } else if (mode === 'fertilizer') {
-                if (waterSol.is_active) await SolenoidModel.updateState(waterSol.id, 0);
-                if (!fertilizerSol.is_active) await SolenoidModel.updateState(fertilizerSol.id, 1);
+                if (waterSol.is_active) await SolenoidModel.updateState(waterSol._id, false);
+                if (!fertilizerSol.is_active) await SolenoidModel.updateState(fertilizerSol._id, true);
                 action = 'Katup Pupuk Dinyalakan';
             }
 

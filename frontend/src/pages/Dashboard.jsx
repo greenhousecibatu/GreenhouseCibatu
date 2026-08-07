@@ -130,7 +130,7 @@ export default function Dashboard() {
 
                             return (
                                 <div
-                                    key={item.id}
+                                    key={item.id || item._id}
                                     className={`bg-surface-container-lowest ${stripClass} p-md rounded-r-xl shadow-sm flex items-center justify-between`}
                                 >
                                     <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -157,9 +157,15 @@ export default function Dashboard() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                     <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-sm shadow-lg border border-outline-variant/20">
                         <h3 className="font-title-lg text-title-lg text-on-surface mb-2">Konfirmasi Mode Manual</h3>
-                        <p className="font-body-md text-body-md text-on-surface-variant mb-6">
+                        <p className="font-body-md text-body-md text-on-surface-variant mb-4">
                             Apakah Anda yakin ingin menyalakan katup {confirmMode === 'water' ? 'Air' : 'Pupuk'} secara manual? Ini akan mengambil alih sistem dari jadwal otomatis.
                         </p>
+                        <div className="bg-error/10 text-error p-3 rounded-lg flex gap-2 items-start mb-6">
+                            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>warning</span>
+                            <p className="font-body-sm text-body-sm">
+                                <strong>Peringatan Keamanan:</strong> Sistem memiliki fitur <em>Fail-Safe</em>. Katup akan otomatis dimatikan dalam batas maksimal <strong>15 Menit</strong>.
+                            </p>
+                        </div>
                         <div className="flex justify-end gap-3">
                             <button 
                                 onClick={() => setConfirmMode(null)}

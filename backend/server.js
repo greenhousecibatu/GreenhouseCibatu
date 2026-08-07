@@ -9,9 +9,13 @@ const path = require('path');
 const connectDB = require('./config/db');
 const apiRoutes = require('./routes/api');
 const HistoryModel = require('./models/historyModel');
+const MqttService = require('./services/mqttService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Start MQTT Client
+MqttService.connect();
 
 // Middleware
 app.use(cors());

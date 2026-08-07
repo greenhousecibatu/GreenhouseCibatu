@@ -240,13 +240,14 @@ export const AppProvider = ({ children }) => {
 
 
     // ---- Solenoid Control ----
-    const setManualMode = async (mode) => {
+    const setManualMode = async (mode, duration = null) => {
         try {
             // IF MQTT IS CONNECTED, PUBLISH TO MQTT FOR ZERO-DELAY
             if (mqttConnected && mqttConfig.pubTopic) {
                 const payload = { action: 'set_mode', mode: mode };
+                if (duration) payload.duration = duration;
                 MqttService.publish(mqttConfig.pubTopic, payload);
-                console.log('[MQTT] Published mode:', mode);
+                console.log('[MQTT] Published mode:', mode, 'duration:', duration);
             }
 
             // ALWAYS FALLBACK TO HTTP API TO UPDATE DATABASE & SYNC STATE
@@ -283,7 +284,7 @@ export const AppProvider = ({ children }) => {
             const res = await authFetch(`/api/solenoids/${id}/toggle`, { method: 'PUT' });
             if (res.ok) {
                 const updated = await res.json();
-                setSolenoids(prev => prev.map(s => s.id === updated.id ? updated : s));
+                setSolenoids(prev => prev.map(s => (s.id || s._id) === (updated.id || updated._id) ? updated : s));
                 showToast(
                     updated.is_active ? 'check_circle' : 'cancel',
                     `${updated.name} ${updated.is_active ? 'NYALA' : 'MATI'}`,
@@ -312,7 +313,7 @@ export const AppProvider = ({ children }) => {
                 // Automatically turn on/off the pump for countdown schedules
                 if (updated.method === 'countdown') {
                     if (updated.enabled) {
-                        setManualMode(updated.type);
+                        setManualMode(updated.type, updated.duration * 60);
                     } else {
                         setManualMode('off');
                     }
@@ -474,7 +475,7 @@ export const AppProvider = ({ children }) => {
                             showToast('notifications_active', 'Hitung mundur selesai!', 'success');
                             if (window.navigator.vibrate) window.navigator.vibrate([200, 100, 200]);
                             setTimeout(() => {
-                                setManualModeRef.current('off');
+                                // setManualModeRef.current('off'); // Dihapus karena ESP32 yang mematikan otomatis
                                 deleteRef.current(id);
                                 if (removeTimerRef.current) removeTimerRef.current(id);
                             }, 0);
@@ -487,28 +488,10 @@ export const AppProvider = ({ children }) => {
         return () => clearInterval(intervalId);
     }, [playAlarmSound, showToast]);
 
-    // ---- 2-Minute Auto-Off Timer for Manual Mode ----
+    // ---- Auto-Off Timer dipindahkan ke Firmware ESP32 ----
     useEffect(() => {
-        const activeSolenoid = solenoids.find(s => s.is_active === 1 || s.is_active === true);
-        const hasActiveCountdown = Object.values(timers).some(t => t.remaining > 0 && !t.isPaused);
-        
-        let autoOffTimer = null;
-
-        if (activeSolenoid && !hasActiveCountdown) {
-            autoOffTimer = setTimeout(() => {
-                setManualMode('off');
-                showToast(
-                    'warning',
-                    `Keamanan Sistem: Katup ${activeSolenoid.type === 'water' ? 'Air' : 'Pupuk'} dimatikan otomatis karena menyala lebih dari 2 menit.`,
-                    'neutral'
-                );
-            }, 2 * 60 * 1000); // 2 minutes
-        }
-
-        return () => {
-            if (autoOffTimer) clearTimeout(autoOffTimer);
-        };
-    }, [solenoids, timers, showToast]);
+        // Logika keamanan 2-menit auto-off dihapus karena sekarang ditangani sepenuhnya oleh ESP32
+    }, []);
 
 
     return (

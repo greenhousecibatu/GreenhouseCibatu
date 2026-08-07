@@ -42,6 +42,9 @@ const ScheduleController = {
                 message: `"${name}" scheduled ${timeString} for ${duration} min.`
             });
 
+            // Trigger MQTT sync
+            MqttService.publishSchedules();
+
             res.status(201).json(schedule);
         } catch (err) {
             console.error(err);
@@ -57,6 +60,9 @@ const ScheduleController = {
             const updated = await ScheduleModel.update(id, { name, type, method, time, duration, days, interval_value });
             if (!updated) return res.status(404).json({ error: 'Schedule not found' });
 
+            // Trigger MQTT sync
+            MqttService.publishSchedules();
+
             res.json(updated);
         } catch (err) {
             console.error(err);
@@ -70,6 +76,9 @@ const ScheduleController = {
             const deleted = await ScheduleModel.delete(id);
             if (!deleted) return res.status(404).json({ error: 'Schedule not found' });
 
+            // Trigger MQTT sync
+            MqttService.publishSchedules();
+
             res.json({ message: 'Schedule deleted', deleted });
         } catch (err) {
             console.error(err);
@@ -82,6 +91,9 @@ const ScheduleController = {
             const { id } = req.params;
             const updated = await ScheduleModel.toggleEnabled(id);
             if (!updated) return res.status(404).json({ error: 'Schedule not found' });
+
+            // Trigger MQTT sync
+            MqttService.publishSchedules();
 
             res.json(updated);
         } catch (err) {
