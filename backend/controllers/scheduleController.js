@@ -4,6 +4,7 @@
 
 const ScheduleModel = require('../models/scheduleModel');
 const NotificationModel = require('../models/notificationModel');
+const MqttService = require('../services/mqttService');
 
 const ScheduleController = {
     getAll: async (req, res) => {

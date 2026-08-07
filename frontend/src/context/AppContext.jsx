@@ -342,9 +342,13 @@ export const AppProvider = ({ children }) => {
                 setSchedules(prev => [...prev, created].sort((a,b) => a.time.localeCompare(b.time)));
                 showToast('check_circle', `Schedule "${created.name}" berhasil dibuat`, 'success');
                 await refreshSemua();
+                return true;
+            } else {
+                throw new Error("Failed to create");
             }
         } catch (err) {
             showToast('error', 'Gagal membuat jadwal', 'error');
+            throw err;
         }
     };
 
