@@ -9,6 +9,7 @@ import History from './pages/History';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
 import TourGuide from './components/TourGuide';
+import VoiceAssistant from './components/VoiceAssistant';
 
 function App() {
     const { currentPage } = useApp();
@@ -101,6 +102,7 @@ function App() {
             </main>
             <BottomNav />
             <TourGuide />
+            <VoiceAssistant />
         </div>
     );
 }
