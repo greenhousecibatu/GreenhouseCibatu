@@ -237,10 +237,10 @@ const VoiceAssistant = () => {
         <>
             <button 
                 onClick={openPreModal}
-                className={`fixed bottom-24 right-4 z-[90] w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all transform ${isListening ? 'bg-error text-white scale-110 animate-pulse' : 'bg-primary text-white hover:scale-105'}`}
+                className={`fixed bottom-24 left-1/2 -translate-x-1/2 z-[90] w-20 h-20 rounded-full flex items-center justify-center shadow-xl transition-all transform ${isListening ? 'bg-error text-white scale-110 animate-pulse' : 'bg-primary text-white hover:scale-105'}`}
                 title="Asisten Suara Pintar"
             >
-                <span className="material-symbols-outlined" style={{ fontSize: '28px', fontVariationSettings: "'FILL' 1" }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '40px', fontVariationSettings: "'FILL' 1" }}>
                     {isListening ? 'mic' : 'mic_none'}
                 </span>
             </button>
