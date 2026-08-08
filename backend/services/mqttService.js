@@ -2,13 +2,13 @@ const mqtt = require('mqtt');
 const ScheduleModel = require('../models/scheduleModel');
 
 const MQTT_BROKER = 'mqtts://broker.hivemq.com:8883';
-const SYNC_TOPIC = 'greenhouse-cibatu/irigasi/schedules/sync';
+const SYNC_TOPIC = 'greenhouse-cibatu/schedules/sync'; // Disesuaikan dengan Arduino
 
 let client;
 
 const MqttService = {
     connect: () => {
-        if (process.env.VERCEL) return; // Vercel: pakai koneksi sementara saja
+        if (process.env.VERCEL) return;
 
         const mqttOptions = {
             clientId: `agrilog-backend-${Math.random().toString(16).slice(2, 8)}`,
@@ -23,7 +23,6 @@ const MqttService = {
         
         client.on('message', (topic, message) => {
             if (topic === 'greenhouse-cibatu/status' && message.toString() === 'online') {
-                // Ketika ESP32 baru menyala, kirimkan jadwal terbaru
                 MqttService.publishSchedules();
             }
         });
@@ -37,38 +36,38 @@ const MqttService = {
         try {
             const schedules = await ScheduleModel.getAll();
             
-            // Format ulang agar payload seminimal mungkin untuk ESP32 (menghemat RAM)
-            const alarms = schedules
-                .filter(s => s.method === 'alarm' && s.enabled)
-                .map(s => ({
-                    t: s.time, // "08:00"
-                    d: s.duration, // menit
-                    m: s.type === 'water' ? 0 : 1, // 0 = water, 1 = fertilizer
-                    w: s.days.map(d => d.substring(0, 3)) // ["Mon", "Tue"]
-                }));
+            // Kirim data LENGKAP sesuai format yang diharapkan Arduino
+            const scheduleData = schedules.map(s => ({
+                name: s.name,
+                type: s.type,
+                method: s.method || 'alarm',
+                time: s.time || '00:00',
+                duration: s.duration,
+                days: (s.days || []).map(d => d.length > 3 ? d.substring(0, 3) : d),
+                interval_value: s.interval_value || 0,
+                enabled: s.enabled
+            }));
             
-            const payload = JSON.stringify({ alarms });
+            // Kirim sebagai Array JSON mentah (bukan dibungkus object)
+            const payload = JSON.stringify(scheduleData);
             console.log('📡 Publishing Schedules:', payload);
 
             if (client && client.connected) {
-                // Jika koneksi persistent tersedia (lokal / non-Vercel), langsung publish
                 client.publish(SYNC_TOPIC, payload, { retain: true });
                 console.log('✅ Jadwal terkirim via koneksi persistent.');
             } else {
-                // Fallback: Buat koneksi sementara (Wajib untuk Vercel Serverless)
-                await new Promise((resolve, reject) => {
+                await new Promise((resolve) => {
                     const tempOptions = {
                         clientId: `agrilog-vercel-${Date.now()}`,
-                        connectTimeout: 10000, // Timeout 10 detik
+                        connectTimeout: 10000,
                     };
                     
                     const tempClient = mqtt.connect(MQTT_BROKER, tempOptions);
                     
-                    // Timeout keamanan: jika 15 detik tidak konek, batalkan
                     const safetyTimeout = setTimeout(() => {
                         console.error('⏰ MQTT Timeout: Gagal konek dalam 15 detik.');
                         try { tempClient.end(true); } catch(e) {}
-                        resolve(); // Resolve agar API tidak hang
+                        resolve();
                     }, 15000);
                     
                     tempClient.on('connect', () => {
@@ -89,7 +88,7 @@ const MqttService = {
                         clearTimeout(safetyTimeout);
                         console.error('❌ MQTT Temp Error:', err.message);
                         try { tempClient.end(true); } catch(e) {}
-                        resolve(); // Resolve agar API tetap jalan
+                        resolve();
                     });
                 });
             }
