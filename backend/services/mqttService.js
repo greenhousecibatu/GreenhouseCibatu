@@ -1,12 +1,10 @@
 const mqtt = require('mqtt');
 const ScheduleModel = require('../models/scheduleModel');
 
-const MQTT_BROKER = 'mqtts://845bf1b6f4d544cfaf2c6f52cb6907c3.s1.eu.hivemq.cloud:8883';
+const MQTT_BROKER = 'mqtts://broker.hivemq.com:8883';
 const SYNC_TOPIC = 'greenhouse-cibatu/irigasi/schedules/sync';
 
 const mqttOptions = {
-    username: process.env.MQTT_USERNAME || 'greenhouse-cibatu',
-    password: process.env.MQTT_PASSWORD || 'KopiCibatu2026',
     clientId: `agrilog-backend-${Math.random().toString(16).slice(2, 8)}`,
 };
 
