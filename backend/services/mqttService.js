@@ -1,8 +1,14 @@
 const mqtt = require('mqtt');
 const ScheduleModel = require('../models/scheduleModel');
 
-const MQTT_BROKER = 'mqtt://broker.hivemq.com';
+const MQTT_BROKER = 'mqtts://845bf1b6f4d544cfaf2c6f52cb6907c3.s1.eu.hivemq.cloud:8883';
 const SYNC_TOPIC = 'greenhouse-cibatu/irigasi/schedules/sync';
+
+const mqttOptions = {
+    username: process.env.MQTT_USERNAME || 'greenhouse-cibatu',
+    password: process.env.MQTT_PASSWORD || 'KopiCibatu2026',
+    clientId: `agrilog-backend-${Math.random().toString(16).slice(2, 8)}`,
+};
 
 let client;
 
@@ -10,7 +16,7 @@ const MqttService = {
     connect: () => {
         if (process.env.VERCEL) return; // Jangan tahan koneksi background jika di Vercel
         
-        client = mqtt.connect(MQTT_BROKER);
+        client = mqtt.connect(MQTT_BROKER, mqttOptions);
         
         client.on('connect', () => {
             console.log('🔗 Backend connected to MQTT Broker');
@@ -46,7 +52,7 @@ const MqttService = {
                 client.publish(SYNC_TOPIC, payload, { retain: true });
             } else {
                 // Fallback untuk Vercel (Koneksi instan, publish, lalu tutup)
-                const tempClient = mqtt.connect(MQTT_BROKER);
+                const tempClient = mqtt.connect(MQTT_BROKER, mqttOptions);
                 tempClient.on('connect', () => {
                     tempClient.publish(SYNC_TOPIC, payload, { retain: true }, () => {
                         tempClient.end();
