@@ -113,7 +113,8 @@ const VoiceAssistant = () => {
         }
 
         if (isJadwalkan) {
-            const timeMatch = transcript.match(/jam\s+([0-9a-zA-Z\s]+)/);
+            // Ubah regex agar mendeteksi tanda baca titik dua (:) dan titik (.) yang sering dihasilkan oleh Google Speech
+            const timeMatch = transcript.match(/jam\s+([0-9a-zA-Z\s:\.]+)/);
             if (timeMatch) {
                 // Buang bagian durasi ("selama ... menit") agar tidak mengganggu parsing jam
                 let timeStrText = timeMatch[1].trim().replace(/selama\s+.*$/i, '');
