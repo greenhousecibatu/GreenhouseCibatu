@@ -152,14 +152,23 @@ const VoiceAssistant = () => {
                         const finalDays = parseDays(transcript);
                         const daysText = finalDays.length === 7 ? "setiap hari" : `hari ${finalDays.join(' dan ')}`;
 
+                        // Translasikan hari ke format singkatan Inggris (Mon, Tue, Wed...) agar dipahami ESP32
+                        const dayMap = {
+                            'Senin': 'Mon', 'Selasa': 'Tue', 'Rabu': 'Wed', 'Kamis': 'Thu',
+                            'Jumat': 'Fri', 'Sabtu': 'Sat', 'Minggu': 'Sun'
+                        };
+                        const mappedDays = finalDays.map(d => dayMap[d]);
+
                         setPendingCommand({
                             type: 'schedule',
                             scheduleData: {
                                 name: `Jadwal Suara ${type === 'water' ? 'Air' : 'Pupuk'} (${timeStrFormatted})`,
                                 type: type,
+                                method: 'alarm', // Pastikan sama dengan manual
                                 time: timeStrFormatted,
                                 duration: finalDuration,
-                                days: finalDays,
+                                interval_value: 0, // Pastikan 0 bukan null
+                                days: mappedDays,
                                 is_active: true
                             },
                             messageToSpeak: `Jadwal berhasil ditambahkan. Katup ${type === 'water' ? 'Air' : 'Pupuk'} akan menyala ${daysText} jam ${hh} lebih ${mm} menit, selama ${finalDuration} menit.`,
