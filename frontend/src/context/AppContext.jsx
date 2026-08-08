@@ -77,6 +77,14 @@ export const AppProvider = ({ children }) => {
         showToast('sensors_off', 'Terputus dari MQTT Broker', 'neutral');
     }, []);
 
+    // ---- Auto Connect MQTT pada Load ----
+    useEffect(() => {
+        if (mqttConfig.host) {
+            connectMqtt();
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     // ---- PWA Install Listener ----
     useEffect(() => {
         const handleBeforeInstallPrompt = (e) => {

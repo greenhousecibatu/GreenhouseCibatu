@@ -53,14 +53,14 @@ export default function Schedules() {
                     Alarm
                 </button>
                 <button 
-                    className={`flex-1 py-3 font-label-bold text-center rounded-lg transition-colors ${activeTab === 'countdown' ? 'bg-primary text-white shadow-md' : 'text-on-surface hover:bg-surface-variant/50'}`}
-                    onClick={() => setActiveTab('countdown')}
+                    className={`flex-1 py-3 font-label-bold text-center rounded-lg transition-colors ${activeTab === 'countdown' ? 'bg-primary text-white shadow-md' : 'text-on-surface hover:bg-surface-variant/50 opacity-50'}`}
+                    onClick={() => showToast('info', 'Fitur belum tersedia', 'neutral')}
                 >
                     Mundur
                 </button>
                 <button 
-                    className={`flex-1 py-3 font-label-bold text-center rounded-lg transition-colors ${activeTab === 'interval' ? 'bg-primary text-white shadow-md' : 'text-on-surface hover:bg-surface-variant/50'}`}
-                    onClick={() => setActiveTab('interval')}
+                    className={`flex-1 py-3 font-label-bold text-center rounded-lg transition-colors ${activeTab === 'interval' ? 'bg-primary text-white shadow-md' : 'text-on-surface hover:bg-surface-variant/50 opacity-50'}`}
+                    onClick={() => showToast('info', 'Fitur belum tersedia', 'neutral')}
                 >
                     Interval
                 </button>
@@ -114,7 +114,7 @@ function AlarmTab({ schedules, onCreate, onUpdate, onDelete, onToggle, showToast
     const [isCreating, setIsCreating] = useState(false);
     const [editId, setEditId] = useState(null);
     const [timeVal, setTimeVal] = useState({ hour: 8, minute: 0 });
-    const [formData, setFormData] = useState({ name: '', type: 'water', duration: 30, days: [] });
+    const [formData, setFormData] = useState({ name: '', type: 'water', duration: 5, days: [] });
     
     const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const dayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -130,7 +130,7 @@ function AlarmTab({ schedules, onCreate, onUpdate, onDelete, onToggle, showToast
     const resetForm = () => {
         setIsCreating(false);
         setEditId(null);
-        setFormData({ name: '', type: 'water', duration: 30, days: [] });
+        setFormData({ name: '', type: 'water', duration: 5, days: [] });
     };
 
     const handleSave = () => {
@@ -193,6 +193,20 @@ function AlarmTab({ schedules, onCreate, onUpdate, onDelete, onToggle, showToast
                     <div className="flex gap-2">
                         <button type="button" onClick={() => setFormData({...formData, type: 'water'})} className={`flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 ${formData.type === 'water' ? 'bg-primary-fixed text-primary' : 'bg-surface-container-low text-outline'}`}>Air</button>
                         <button type="button" onClick={() => setFormData({...formData, type: 'fertilizer'})} className={`flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 ${formData.type === 'fertilizer' ? 'bg-secondary-fixed text-secondary' : 'bg-surface-container-low text-outline'}`}>Pupuk</button>
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-bold text-outline uppercase mb-2 flex justify-between">
+                            <span>Durasi Menyala</span>
+                            <span className="text-primary">{formData.duration} Menit</span>
+                        </label>
+                        <input 
+                            type="range" 
+                            min="1" max="120" 
+                            value={formData.duration} 
+                            onChange={(e) => setFormData({...formData, duration: parseInt(e.target.value)})}
+                            className="w-full accent-primary"
+                        />
                     </div>
 
                     <div className="flex gap-4 pt-4">
