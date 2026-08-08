@@ -59,12 +59,15 @@ const VoiceAssistant = () => {
     };
 
     const parseNumber = (str) => {
+        // Urutan sangat penting! Kata yang lebih panjang (puluhan/belasan) harus di atas
+        // agar "tiga puluh" tidak terbaca sebagai "tiga".
         const textToNum = {
-            'satu': 1, 'dua': 2, 'tiga': 3, 'empat': 4, 'lima': 5,
-            'enam': 6, 'tujuh': 7, 'delapan': 8, 'sembilan': 9, 'sepuluh': 10,
+            'dua puluh': 20, 'tiga puluh': 30, 'empat puluh': 40, 'lima puluh': 50, 'enam puluh': 60,
             'sebelas': 11, 'dua belas': 12, 'tiga belas': 13, 'empat belas': 14, 'lima belas': 15,
-            'enam belas': 16, 'tujuh belas': 17, 'delapan belas': 18, 'sembilan belas': 19, 'dua puluh': 20,
-            'tiga puluh': 30, 'empat puluh': 40, 'lima puluh': 50, 'enam puluh': 60
+            'enam belas': 16, 'tujuh belas': 17, 'delapan belas': 18, 'sembilan belas': 19,
+            'sepuluh': 10,
+            'satu': 1, 'dua': 2, 'tiga': 3, 'empat': 4, 'lima': 5,
+            'enam': 6, 'tujuh': 7, 'delapan': 8, 'sembilan': 9, 'nol': 0
         };
         const matches = str.match(/\d+/);
         if (matches) return parseInt(matches[0]);
@@ -97,15 +100,23 @@ const VoiceAssistant = () => {
         const isPupuk = transcript.includes('pupuk') || transcript.includes('nutrisi');
         
         let durationMinutes = null;
-        const durationMatch = transcript.match(/selama\s+(.+?)\s+menit/i) || transcript.match(/(.+?)\s+menit/i);
+        // Hanya ekstrak durasi dari bagian akhir (setelah 'selama' jika ada)
+        const durationMatch = transcript.match(/selama\s+(.+?)\s+menit/i);
         if (durationMatch) {
             durationMinutes = parseNumber(durationMatch[1].trim());
+        } else {
+            // Coba cari pola "angka menit" di bagian akhir string
+            const simpleDurationMatch = transcript.match(/(\d+|satu|dua|tiga|empat|lima|enam|tujuh|delapan|sembilan|sepuluh|belas|puluh)\s+menit$/i);
+            if (simpleDurationMatch) {
+                durationMinutes = parseNumber(simpleDurationMatch[1].trim());
+            }
         }
 
         if (isJadwalkan) {
             const timeMatch = transcript.match(/jam\s+([0-9a-zA-Z\s]+)/);
             if (timeMatch) {
-                let timeStrText = timeMatch[1].trim();
+                // Buang bagian durasi ("selama ... menit") agar tidak mengganggu parsing jam
+                let timeStrText = timeMatch[1].trim().replace(/selama\s+.*$/i, '');
                 let hh = 0, mm = 0;
                 
                 const digits = timeStrText.match(/\d+/g);
@@ -113,10 +124,17 @@ const VoiceAssistant = () => {
                     hh = parseInt(digits[0]);
                     if (digits.length >= 2) mm = parseInt(digits[1]);
                 } else {
-                    hh = parseNumber(timeStrText) || 0;
                     if (timeStrText.includes('setengah')) {
+                        hh = parseNumber(timeStrText) || 0;
                         mm = 30; hh = hh - 1;
                         if(hh < 0) hh = 0;
+                    } else {
+                        // Pisahkan antara Jam dan Menit (menggunakan kata lewat/lebih)
+                        const parts = timeStrText.split(/lewat|lebih/);
+                        hh = parseNumber(parts[0]) || 0;
+                        if (parts.length > 1) {
+                            mm = parseNumber(parts[1]) || 0;
+                        }
                     }
                 }
                 
