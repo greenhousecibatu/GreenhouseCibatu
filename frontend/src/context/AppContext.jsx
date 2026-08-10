@@ -48,7 +48,7 @@ export const AppProvider = ({ children }) => {
             mqttConfig,
             () => {
                 setMqttConnected(true);
-                showToast('sensors', 'Terhubung ke MQTT Broker', 'success');
+                showToast('sensors', 'Terhubung ke MQTT Broker', 'success', true);
             },
             (topic, message) => {
                 console.log('Incoming MQTT:', topic, message);
@@ -56,10 +56,10 @@ export const AppProvider = ({ children }) => {
                 if (topic === mqttConfig.statusTopic) {
                     if (message === 'online') {
                         setEspOnline(true);
-                        showToast('wifi', 'ESP32 Terhubung', 'success');
+                        showToast('wifi', 'ESP32 Terhubung', 'success', true);
                     } else if (message === 'offline') {
                         setEspOnline(false);
-                        showToast('wifi_off', 'ESP32 Terputus (Offline)', 'error');
+                        showToast('wifi_off', 'ESP32 Terputus (Offline)', 'error', true);
                     }
                 }
                 // Future: Handle incoming telemetry from ESP32
@@ -135,12 +135,12 @@ export const AppProvider = ({ children }) => {
 
 
     // ---- Toast emitter ----
-    const showToast = useCallback((icon, message, type = 'neutral') => {
+    const showToast = useCallback((icon, message, type = 'neutral', silentPush = false) => {
         const id = Date.now();
         setToasts(prev => [...prev, { id, icon, message, type }]);
 
         // ---- Push Notification Integration ----
-        if (type === 'success' || type === 'error') {
+        if (!silentPush && (type === 'success' || type === 'error')) {
             if ('Notification' in window && Notification.permission === 'granted') {
                 const title = type === 'success' ? 'Aktivitas Selesai' : 'Peringatan';
                 navigator.serviceWorker?.ready.then(registration => {

@@ -4,12 +4,14 @@ import { useApp } from '../context/AppContext';
 export default function Dashboard() {
     const { solenoids, setManualMode, history, setCurrentPage, weather, deferredPrompt, installPwa, espOnline, mqttConnected } = useApp();
     const [confirmMode, setConfirmMode] = useState(null);
+    const [manualDuration, setManualDuration] = useState(5);
 
     const handleModeClick = (mode) => {
         if (mode === 'off') {
             setManualMode('off');
         } else {
             setConfirmMode(mode);
+            setManualDuration(5); // Reset ke 5 tiap kali buka modal
         }
     };
 
@@ -19,7 +21,9 @@ export default function Dashboard() {
     // Format time
     const formatTime = (dateStr) => {
         const d = new Date(dateStr);
-        return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        const dateOpt = { day: 'numeric', month: 'short' };
+        const timeOpt = { hour: '2-digit', minute: '2-digit', hour12: true };
+        return `${d.toLocaleDateString('id-ID', dateOpt)}, ${d.toLocaleTimeString('en-US', timeOpt)}`;
     };
 
     return (
@@ -37,7 +41,7 @@ export default function Dashboard() {
                             <p className="font-body-sm text-body-sm opacity-90">Akses lebih cepat & praktis</p>
                         </div>
                     </div>
-                    <button 
+                    <button
                         onClick={installPwa}
                         className="bg-primary text-on-primary px-4 py-2 rounded-full font-label-bold text-label-bold hover:shadow-lg transition-all active:scale-95"
                     >
@@ -56,7 +60,7 @@ export default function Dashboard() {
                         </div>
                     )}
                 </div>
-                
+
                 {(() => {
                     const activeSolenoid = solenoids.find(s => s.is_active === 1 || s.is_active === true);
                     const currentMode = activeSolenoid ? activeSolenoid.type : 'off';
@@ -78,19 +82,19 @@ export default function Dashboard() {
                             </div>
 
                             <div className="w-full flex rounded-lg overflow-hidden border border-outline-variant/30">
-                                <button 
+                                <button
                                     onClick={() => handleModeClick('off')}
                                     className={`flex-1 py-3 font-label-bold text-center transition-colors ${currentMode === 'off' ? 'bg-error text-white' : 'bg-surface text-on-surface hover:bg-surface-container'}`}
                                 >
                                     MATI
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => handleModeClick('water')}
                                     className={`flex-1 py-3 font-label-bold text-center transition-colors border-l border-r border-outline-variant/30 ${currentMode === 'water' ? 'bg-primary text-white' : 'bg-surface text-on-surface hover:bg-surface-container'}`}
                                 >
                                     AIR
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => handleModeClick('fertilizer')}
                                     className={`flex-1 py-3 font-label-bold text-center transition-colors ${currentMode === 'fertilizer' ? 'bg-secondary text-white' : 'bg-surface text-on-surface hover:bg-surface-container'}`}
                                 >
@@ -113,7 +117,7 @@ export default function Dashboard() {
                         Lihat semua
                     </button>
                 </div>
-                
+
                 {recentLogs.length === 0 ? (
                     <div className="text-center py-md">
                         <p className="font-body-sm text-body-sm text-outline">Tidak ada aktivitas terbaru</p>
@@ -125,8 +129,8 @@ export default function Dashboard() {
                             const statusIcon = item.status === 'success'
                                 ? <span className="material-symbols-outlined text-primary text-sm" style={{ fontSize: '16px', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
                                 : item.status === 'failed'
-                                ? <span className="material-symbols-outlined text-error text-sm" style={{ fontSize: '16px', fontVariationSettings: "'FILL' 1" }}>error</span>
-                                : <span className="material-symbols-outlined text-outline text-sm" style={{ fontSize: '16px' }}>schedule</span>;
+                                    ? <span className="material-symbols-outlined text-error text-sm" style={{ fontSize: '16px', fontVariationSettings: "'FILL' 1" }}>error</span>
+                                    : <span className="material-symbols-outlined text-outline text-sm" style={{ fontSize: '16px' }}>schedule</span>;
 
                             return (
                                 <div
@@ -158,29 +162,44 @@ export default function Dashboard() {
                     <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-sm shadow-lg border border-outline-variant/20">
                         <h3 className="font-title-lg text-title-lg text-on-surface mb-2">Konfirmasi Mode Manual</h3>
                         <p className="font-body-md text-body-md text-on-surface-variant mb-4">
-                            Apakah Anda yakin ingin menyalakan katup {confirmMode === 'water' ? 'Air' : 'Pupuk'} secara manual? Ini akan mengambil alih sistem dari jadwal otomatis.
+                            Silakan tentukan berapa lama katup {confirmMode === 'water' ? 'Air' : 'Pupuk'} akan dinyalakan. Alat akan otomatis mati setelah waktu ini habis.
                         </p>
-                        <div className="bg-error/10 text-error p-3 rounded-lg flex gap-2 items-start mb-6">
-                            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>warning</span>
+                        
+                        <div className="mb-6">
+                            <label className="block text-sm font-label-bold text-on-surface mb-2">Durasi Menyala (Menit)</label>
+                            <input
+                                type="number"
+                                min="1"
+                                max="120"
+                                value={manualDuration}
+                                onChange={(e) => setManualDuration(parseInt(e.target.value) || 0)}
+                                className="w-full bg-surface-container border border-outline-variant rounded-lg p-3 text-on-surface font-body-large focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                            />
+                        </div>
+
+                        <div className="bg-primary/10 text-primary-dark p-3 rounded-lg flex gap-2 items-start mb-6">
+                            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>timer</span>
                             <p className="font-body-sm text-body-sm">
-                                <strong>Peringatan Keamanan:</strong> Sistem memiliki fitur <em>Fail-Safe</em>. Katup akan otomatis dimatikan dalam batas maksimal <strong>15 Menit</strong>.
+                                Timer akan dihitung dan dikontrol langsung oleh mesin ESP32 secara mandiri, sehingga lebih aman.
                             </p>
                         </div>
+                        
                         <div className="flex justify-end gap-3">
-                            <button 
+                            <button
                                 onClick={() => setConfirmMode(null)}
                                 className="px-4 py-2 rounded-full font-label-large text-label-large text-primary hover:bg-surface-variant transition-colors"
                             >
                                 Batal
                             </button>
-                            <button 
+                            <button
                                 onClick={() => {
-                                    setManualMode(confirmMode);
+                                    setManualMode(confirmMode, manualDuration);
                                     setConfirmMode(null);
                                 }}
-                                className="px-4 py-2 rounded-full font-label-large text-label-large bg-primary text-on-primary hover:bg-primary/90 transition-colors shadow-sm"
+                                className="px-4 py-2 rounded-full font-label-large text-label-large bg-primary text-on-primary hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50"
+                                disabled={manualDuration <= 0}
                             >
-                                Lanjutkan
+                                Mulai Sekarang
                             </button>
                         </div>
                     </div>
