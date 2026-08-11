@@ -1,0 +1,611 @@
+#include <WiFi.h>
+#include <WiFiManager.h> // Tambahan untuk pengaturan WiFi lewat HP
+#include <WiFiClientSecure.h>
+#define MQTT_MAX_PACKET_SIZE 2048
+#include <PubSubClient.h>
+#include <ArduinoJson.h>
+#include <Wire.h>
+#include <RTClib.h>
+#include <LiquidCrystal_I2C.h>
+#include <Preferences.h> 
+
+// --- 1. CONFIGURATION MQTT (PUBLIC SERVER SEPERTI DI WEB) ---
+const char* mqtt_server = "broker.hivemq.com";
+const int mqtt_port = 8883;
+const char* mqtt_user = ""; 
+const char* mqtt_pass = "";
+const char* mqtt_client_id = "ESP32_Greenhouse_01";
+
+// [BUG FIX 3] Kunci keamanan sederhana untuk mem-validasi perintah yang masuk.
+// Hanya perintah MQTT yang menyertakan "key":"GH_SECRET_2026" yang akan dieksekusi.
+// Ganti nilai ini dan samakan dengan yang ada di MQTT config website Anda.
+const char* COMMAND_SECRET_KEY = "GH_SECRET_2026";
+
+// --- 2. MQTT TOPICS ---
+const char* topic_sub = "greenhouse-cibatu/irigasi/+/command";
+const char* topic_sub_sync = "greenhouse-cibatu/schedules/sync";
+const char* topic_status = "greenhouse-cibatu/status";
+// Topik khusus: ESP32 mengirim permintaan agar backend mengirim ulang jadwal
+const char* topic_request_sync = "greenhouse-cibatu/schedules/request";
+
+// --- 3. DEFINISI PIN ---
+#define RELAY_1_PIN 15  // Solenoid 1 (Pupuk) - NO Active-Low
+#define RELAY_2_PIN 2   // Solenoid 2 (Air)   - NO Active-Low
+#define RELAY_3_PIN 4   // Pompa Air Utama     - NO Active-Low
+#define BUZZER_PIN  18  // Buzzer aktif
+
+// --- 4. INSTANCE PERANGKAT ---
+RTC_DS3231 rtc;
+LiquidCrystal_I2C lcd(0x27, 20, 4);
+Preferences preferences; 
+
+WiFiClientSecure espClient;
+PubSubClient client(espClient);
+
+// --- 5. DATA STRUCTURE JADWAL (FORMAT ADIT) ---
+struct IrrigationSchedule {
+  char name[32];
+  char type[16];       
+  char method[16];     
+  int hour;
+  int minute;
+  int duration;        
+  int interval_value;  
+  bool days[7];        
+  bool enabled;
+  uint32_t nextRunTime;   
+  bool hasTriggered;      
+};
+
+#define MAX_SCHEDULES 10
+IrrigationSchedule localSchedules[MAX_SCHEDULES];
+int activeScheduleCount = 0;
+
+// Status Eksekusi
+bool isScheduleRunning = false;
+uint32_t scheduleEndTime = 0;
+String runningScheduleType = "";
+int lastCheckedMinute = -1;
+String manualMode = "OFF";
+
+// --- 6. TIMER NON-BLOCKING ---
+unsigned long lastLCDUpdate = 0;
+const long lcdInterval = 1000;
+unsigned long lastLCDPublish = 0;   // Timer publish LCD ke MQTT
+const long lcdPublishInterval = 5000; // Kirim status LCD setiap 5 detik
+unsigned long lastHeartbeat = 0;
+const long heartbeatInterval = 15000; 
+unsigned long lastReconnectAttempt = 0; 
+bool buzzerActive = false;
+
+// Simpan info jadwal yang sedang berjalan untuk laporan selesai
+char runningScheduleName[32] = "";
+char runningScheduleMethod[16] = "alarm";
+int runningScheduleDuration = 0;
+
+// =============================================
+// FUNGSI NVS: Simpan & Baca Jadwal dari Memori Permanen
+// =============================================
+void saveSchedulesToNVS() {
+  preferences.begin("irigasi", false); 
+  preferences.putInt("count", activeScheduleCount);
+  preferences.putBytes("data", &localSchedules, sizeof(localSchedules));
+  preferences.end();
+  Serial.printf("💾 NVS: %d jadwal tersimpan ke memori permanen.\n", activeScheduleCount);
+}
+
+void loadSchedulesFromNVS() {
+  preferences.begin("irigasi", true); 
+  activeScheduleCount = preferences.getInt("count", 0);
+  if (activeScheduleCount > 0) {
+    preferences.getBytes("data", &localSchedules, sizeof(localSchedules));
+  }
+  preferences.end();
+  Serial.printf("📂 NVS: %d jadwal dimuat dari memori permanen (Bisa jalan OFFLINE).\n", activeScheduleCount);
+}
+
+// =============================================
+// CALLBACK WIFI MANAGER
+// =============================================
+void configModeCallback (WiFiManager *myWiFiManager) {
+  Serial.println("Masuk Mode AP (Tunggu 120 detik)");
+  lcd.clear();
+  lcd.setCursor(0, 0); lcd.print("Mode Konfigurasi");
+  lcd.setCursor(0, 1); lcd.print("Konek ke WiFi:");
+  lcd.setCursor(0, 2); lcd.print(myWiFiManager->getConfigPortalSSID());
+}
+
+// =============================================
+// FUNGSI SETUP WIFI DENGAN WIFIMANAGER (DHAFF)
+// =============================================
+void setup_wifi() {
+  delay(10);
+  WiFiManager wm;
+  wm.setAPCallback(configModeCallback);
+  
+  // wm.resetSettings(); // Buka komentar (hapus //) baris ini jika Anda ingin mengganti WiFi lama di ESP32
+  
+  // Timeout portal dibatasi 120 detik. Jika dalam 2 menit tidak dikonfigurasi, alat akan jalan offline.
+  wm.setConfigPortalTimeout(120); 
+  
+  lcd.clear();
+  lcd.setCursor(0,0); lcd.print("Mencari WiFi...");
+  Serial.println("Mencari koneksi WiFi tersimpan atau membuka AP...");
+  
+  bool res = wm.autoConnect("Greenhouse_Cibatu");
+
+  if(!res) {
+    Serial.println("Timeout WiFi. Memasuki Mode Offline.");
+    lcd.clear();
+    lcd.setCursor(0,0); lcd.print("Gagal konek WiFi");
+    lcd.setCursor(0,1); lcd.print("Mode: OFFLINE      ");
+    delay(2000);
+  } else {
+    Serial.println("\nWiFi Connected!");
+    lcd.clear();
+    lcd.setCursor(0, 0); lcd.print("WiFi Connected!    ");
+    lcd.setCursor(0, 1); lcd.print(WiFi.localIP().toString());
+    delay(1500);
+  }
+}
+
+// =============================================
+// FUNGSI RELAY DAN BUZZER
+// =============================================
+void publishSolenoidState(const char* mode) {
+  if (client.connected()) {
+    StaticJsonDocument<128> doc;
+    doc["mode"] = mode;
+    char payload[64];
+    serializeJson(doc, payload);
+    client.publish("greenhouse-cibatu/status/solenoids", payload, true);
+  }
+}
+
+void turnOffAll() {
+  digitalWrite(RELAY_1_PIN, HIGH);
+  digitalWrite(RELAY_2_PIN, HIGH);
+  digitalWrite(RELAY_3_PIN, HIGH);
+  manualMode = "OFF";
+  publishSolenoidState("off");
+}
+
+void activateRelay(const char* type) {
+  if (strcmp(type, "water") == 0) {
+    digitalWrite(RELAY_1_PIN, HIGH); 
+    digitalWrite(RELAY_2_PIN, LOW);  
+    digitalWrite(RELAY_3_PIN, LOW);  
+    publishSolenoidState("water");
+    Serial.println("💦 >>> RELAY: Air ON, Pupuk OFF, Pompa ON");
+  } else if (strcmp(type, "fertilizer") == 0) {
+    digitalWrite(RELAY_1_PIN, LOW);  
+    digitalWrite(RELAY_2_PIN, HIGH); 
+    digitalWrite(RELAY_3_PIN, LOW);  
+    publishSolenoidState("fertilizer");
+    Serial.println("🧪 >>> RELAY: Pupuk ON, Air OFF, Pompa ON");
+  }
+}
+
+void handleBuzzer(int remainingSec) {
+  if (remainingSec <= 3 && remainingSec > 0 && isScheduleRunning) {
+    if (!buzzerActive) buzzerActive = true;
+    unsigned long ms = millis() % 500;
+    digitalWrite(BUZZER_PIN, ms < 250 ? HIGH : LOW);
+  } else {
+    if (buzzerActive) {
+      digitalWrite(BUZZER_PIN, LOW);
+      buzzerActive = false;
+    }
+  }
+}
+
+bool getNextSchedule(DateTime now, String &nextTimeStr, String &nextTypeStr) {
+  if (activeScheduleCount == 0) return false;
+  int currentDay = now.dayOfTheWeek();
+  int minDiff = 999999;
+  int bestIdx = -1;
+  int bestDayOffset = -1;
+  for (int i = 0; i < activeScheduleCount; i++) {
+    IrrigationSchedule &s = localSchedules[i];
+    if (!s.enabled || strcmp(s.method, "alarm") != 0) continue;
+    for (int dayOffset = 0; dayOffset < 7; dayOffset++) {
+      int checkDay = (currentDay + dayOffset) % 7;
+      if (s.days[checkDay]) {
+        int diff = 0;
+        if (dayOffset == 0) {
+          diff = (s.hour * 60 + s.minute) - (now.hour() * 60 + now.minute());
+          if (diff <= 0) diff = (7 * 24 * 60) + diff;
+        } else {
+          diff = (dayOffset * 24 * 60) + (s.hour * 60 + s.minute) - (now.hour() * 60 + now.minute());
+        }
+        if (diff < minDiff) {
+          minDiff = diff;
+          bestIdx = i;
+          bestDayOffset = dayOffset;
+        }
+        break;
+      }
+    }
+  }
+  if (bestIdx != -1) {
+    IrrigationSchedule &s = localSchedules[bestIdx];
+    char buf[25];
+    const char* hariNama[] = {"Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"};
+    int targetDay = (currentDay + bestDayOffset) % 7;
+    snprintf(buf, sizeof(buf), "%s %02d:%02d (%dm)", hariNama[targetDay], s.hour, s.minute, s.duration);
+    nextTimeStr = String(buf);
+    nextTypeStr = (strcmp(s.type, "water") == 0) ? "AIR" : "PUPUK";
+    return true;
+  }
+  return false;
+}
+
+// =============================================
+// CALLBACK MQTT (TERIMA PERINTAH WEB)
+// =============================================
+void callback(char* topic, byte* payload, unsigned int length) {
+  Serial.print("📩 Pesan masuk ["); Serial.print(topic); Serial.print("]: ");
+  String messageTemp = "";
+  for (int i = 0; i < length; i++) messageTemp += (char)payload[i];
+  Serial.println(messageTemp);
+
+  if (strcmp(topic, topic_sub_sync) == 0) {
+    Serial.println("🔄 Sinkronisasi jadwal baru diterima...");
+    DynamicJsonDocument doc(4096);
+    DeserializationError error = deserializeJson(doc, messageTemp);
+    if (error) {
+      Serial.print("❌ Gagal parse JSON: "); Serial.println(error.c_str());
+      return;
+    }
+
+    JsonArray arr = doc.as<JsonArray>();
+    
+    // ⚠️ PERLINDUNGAN NVS: Jika backend mengirim array KOSONG,
+    // jangan hapus jadwal yang sudah tersimpan di memori permanen!
+    // Ini mencegah jadwal hilang akibat kiriman error dari server.
+    if (arr.size() == 0) {
+      Serial.println("⚠️ Sinkronisasi diabaikan: Backend mengirim jadwal kosong. Data NVS dipertahankan.");
+      return;
+    }
+
+    int newCount = 0;
+    IrrigationSchedule tempSchedules[MAX_SCHEDULES]; // Tampung dulu ke temp
+    for (JsonObject obj : arr) {
+      if (newCount >= MAX_SCHEDULES) break;
+      bool enabled = obj["enabled"] | false;
+      if (!enabled) continue; 
+      
+      IrrigationSchedule &s = tempSchedules[newCount];
+      s.enabled = true;
+      s.duration = obj["duration"] | 0;
+      s.interval_value = obj["interval_value"] | 0;
+      s.hasTriggered = false;
+      
+      strlcpy(s.name, obj["name"] | "Unnamed", sizeof(s.name));
+      strlcpy(s.type, obj["type"] | "water", sizeof(s.type));
+      strlcpy(s.method, obj["method"] | "alarm", sizeof(s.method));
+
+      if (strcmp(s.method, "alarm") == 0) {
+        const char* timeStr = obj["time"] | "00:00";
+        sscanf(timeStr, "%d:%d", &s.hour, &s.minute);
+        for (int i = 0; i < 7; i++) s.days[i] = false;
+        JsonArray daysArr = obj["days"];
+        for (JsonVariant d : daysArr) {
+          const char* dayStr = d.as<const char*>();
+          if (strcmp(dayStr, "Sun") == 0) s.days[0] = true;
+          else if (strcmp(dayStr, "Mon") == 0) s.days[1] = true;
+          else if (strcmp(dayStr, "Tue") == 0) s.days[2] = true;
+          else if (strcmp(dayStr, "Wed") == 0) s.days[3] = true;
+          else if (strcmp(dayStr, "Thu") == 0) s.days[4] = true;
+          else if (strcmp(dayStr, "Fri") == 0) s.days[5] = true;
+          else if (strcmp(dayStr, "Sat") == 0) s.days[6] = true;
+        }
+        s.nextRunTime = 0;
+      }
+      newCount++;
+    }
+    
+    // Hanya update & simpan jika ada jadwal yang valid masuk
+    if (newCount > 0) {
+      memcpy(localSchedules, tempSchedules, sizeof(IrrigationSchedule) * newCount);
+      activeScheduleCount = newCount;
+      Serial.printf("✅ Total %d jadwal aktif tersimpan.\n", activeScheduleCount);
+      saveSchedulesToNVS(); // Simpan ke flash memory!
+    } else {
+      Serial.println("⚠️ Semua jadwal di-nonaktifkan. NVS dipertahankan dari data sebelumnya.");
+    }
+  } 
+  else {
+    StaticJsonDocument<256> doc;
+    DeserializationError error = deserializeJson(doc, messageTemp);
+    if (error) { Serial.println("❌ Gagal parse JSON!"); return; }
+    
+    // [BUG FIX 3] Validasi kunci keamanan sebelum eksekusi perintah
+    // Hanya proses perintah jika kunci cocok, untuk cegah kontrol dari luar
+    const char* receivedKey = doc["key"] | "";
+    if (strcmp(receivedKey, COMMAND_SECRET_KEY) != 0) {
+      Serial.println("🔒 Perintah DITOLAK: Kunci keamanan tidak valid!");
+      return; // Hentikan proses, abaikan perintah
+    }
+    
+    const char* mode = doc["mode"];
+    int manualDuration = doc["duration"] | 0; // Mengambil durasi manual jika ada
+    
+    Serial.print("👉 Mode Irigasi: "); Serial.println(mode);
+    
+    isScheduleRunning = false;
+    lcd.clear();
+    
+    if (String(mode) == "water") {
+      activateRelay("water");
+      
+      // Jika ada durasi, nyalakan timer otomatis mati
+      if (manualDuration > 0) {
+        Serial.printf("⏱️ Timer Manual Air diaktifkan: %d menit\n", manualDuration);
+        isScheduleRunning = true;
+        runningScheduleType = "water";
+        scheduleEndTime = rtc.now().unixtime() + (manualDuration * 60);
+        manualMode = "WATER (TMR)";
+      } else {
+        manualMode = "WATER (ON)";
+      }
+    }
+    else if (String(mode) == "fertilizer") {
+      activateRelay("fertilizer");
+      
+      // Jika ada durasi, nyalakan timer otomatis mati
+      if (manualDuration > 0) {
+        Serial.printf("⏱️ Timer Manual Pupuk diaktifkan: %d menit\n", manualDuration);
+        isScheduleRunning = true;
+        runningScheduleType = "fertilizer";
+        scheduleEndTime = rtc.now().unixtime() + (manualDuration * 60);
+        manualMode = "PUPUK (TMR)";
+      } else {
+        manualMode = "FERTILIZER(ON)";
+      }
+    }
+    else if (String(mode) == "off") {
+      Serial.println("🔌 >>> MATIKAN SEMUA");
+      turnOffAll();
+    }
+  }
+}
+
+// =============================================
+// RECONNECT MQTT NON-BLOCKING (KEBAL OFFLINE)
+// =============================================
+void reconnectNonBlocking() {
+  if (WiFi.status() != WL_CONNECTED) {
+    // Jika WiFi putus, kita biarkan saja (jangan paksa reconnect MQTT di sini)
+    // WiFiManager sudah punya sistem reconnect background bawaan dari ESP32 Core.
+    return;
+  }
+
+  unsigned long now = millis();
+  if (!client.connected()) {
+    if (now - lastReconnectAttempt > 5000) {
+      lastReconnectAttempt = now;
+      Serial.println("🔌 Mencoba konek ke MQTT Public...");
+      
+      // Tampilkan tulisan Connecting sementara saja (jangan pakai while loop)
+      lcd.setCursor(0, 3); 
+      lcd.print("MQTT: Connecting... ");
+
+      if (client.connect(mqtt_client_id, mqtt_user, mqtt_pass, topic_status, 1, true, "offline")) {
+        Serial.println("✅ MQTT Terhubung!");
+        lcd.setCursor(0, 3); lcd.print("MQTT: Connected    ");
+        
+        client.subscribe(topic_sub);
+        client.subscribe(topic_sub_sync);
+        client.publish(topic_status, "online", true);
+        
+        // 🔄 AKTIF MINTA JADWAL: ESP32 meminta backend untuk mengirim ulang semua jadwal.
+        // Ini memastikan jadwal yang ditambahkan saat ESP offline tetap diterima saat nyambung kembali.
+        delay(500); // Beri waktu 0.5 detik agar subscribe sudah siap menerima
+        client.publish(topic_request_sync, "request", false);
+        Serial.println("📤 Permintaan sinkronisasi jadwal dikirim ke backend.");
+        
+        lastReconnectAttempt = 0; 
+      } else {
+        Serial.printf("❌ Gagal konek, rc=%d. Berjalan mode OFFLINE.\n", client.state());
+        lcd.setCursor(0, 3);
+        lcd.print("Mode: OFFLINE      ");
+      }
+    }
+  }
+}
+
+// =============================================
+// SETUP
+// =============================================
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(RELAY_1_PIN, OUTPUT);
+  pinMode(RELAY_2_PIN, OUTPUT);
+  pinMode(RELAY_3_PIN, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+  
+  turnOffAll();
+  digitalWrite(BUZZER_PIN, LOW);
+
+  lcd.init();
+  lcd.backlight();
+  lcd.clear();
+  lcd.setCursor(0, 0); lcd.print("Sistem Irigasi IoT");
+  lcd.setCursor(0, 1); lcd.print("Greenhouse Cibatu");
+  delay(1500);
+
+  // Jika RTC modul terlepas, jangan matikan seluruh sistem. Tetap jalan offline
+  if (!rtc.begin()) {
+    Serial.println("⚠️ RTC Error! Pastikan modul RTC terhubung.");
+    lcd.clear(); lcd.setCursor(0, 0); lcd.print("RTC Error!");
+  } else {
+    // rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); // Buka komentar baris ini SATU KALI saja jika jam RTC ngaco
+  }
+
+  // BACA NVS SEBELUM KONEK WIFI (Memastikan Jadwal Siap 100% saat Offline)
+  loadSchedulesFromNVS();
+
+  // Koneksi WiFi dengan WiFiManager
+  setup_wifi();
+  
+  espClient.setInsecure();
+  client.setServer(mqtt_server, mqtt_port);
+  client.setCallback(callback);
+  client.setBufferSize(2048);
+}
+
+// =============================================
+// LOOP UTAMA
+// =============================================
+void loop() {
+  // Selalu usahakan reconnect ke MQTT jika belum terhubung, tapi jangan sampai ngehang
+  reconnectNonBlocking();
+  
+  if (client.connected()) {
+    client.loop();
+  }
+
+  unsigned long now = millis();
+  DateTime rtcTime = rtc.now();
+  uint32_t currentUnix = rtcTime.unixtime();
+
+  // ====== 1. UPDATE LCD SETIAP 1 DETIK ======
+  if (now - lastLCDUpdate > lcdInterval) {
+    lastLCDUpdate = now;
+    
+    // Baris 1: Jam RTC
+    char timeStr[20];
+    snprintf(timeStr, sizeof(timeStr), "Time: %02d:%02d:%02d", rtcTime.hour(), rtcTime.minute(), rtcTime.second());
+    lcd.setCursor(0, 0); lcd.print(timeStr);
+    
+    // Baris 2: Koneksi WiFi
+    lcd.setCursor(0, 1);
+    lcd.print(WiFi.status() == WL_CONNECTED ? "WiFi: Connected    " : "WiFi: Disconnected ");
+
+    // Baris 3: Status Mode
+    lcd.setCursor(0, 2);
+    char modeBuf[21];
+    snprintf(modeBuf, sizeof(modeBuf), "Mode: %-14s", manualMode.c_str());
+    lcd.print(modeBuf);
+
+    // Baris 4: Status Jadwal / Info Reconnecting
+    if (client.connected() || (now - lastReconnectAttempt > 1500)) { 
+      lcd.setCursor(0, 3);
+      if (isScheduleRunning && currentUnix < scheduleEndTime) {
+        int remainingSec = scheduleEndTime - currentUnix;
+        char runBuf[21];
+        snprintf(runBuf, sizeof(runBuf), "Run: %-4s %02dm%02ds", 
+                (runningScheduleType == "water" ? "AIR" : "PPK"), 
+                remainingSec / 60, remainingSec % 60);
+        lcd.print(runBuf);
+        int len = strlen(runBuf);
+        for (int i = len; i < 20; i++) lcd.print(" ");
+      } else {
+        String nextTimeStr = "";
+        String nextTypeStr = "";
+        if (getNextSchedule(rtcTime, nextTimeStr, nextTypeStr)) {
+          char nextBuf[21];
+          snprintf(nextBuf, sizeof(nextBuf), "Nxt:%s %s", nextTypeStr.c_str(), nextTimeStr.c_str());
+          lcd.print(nextBuf);
+          int len = strlen(nextBuf);
+          for (int i = len; i < 20; i++) lcd.print(" ");
+        } else {
+          lcd.print("Next: None          ");
+        }
+      }
+    }
+
+    // Kirim status LCD ke MQTT setiap 5 detik agar website bisa menampilkannya
+    if (client.connected() && (now - lastLCDPublish > lcdPublishInterval)) {
+      lastLCDPublish = now;
+      char line1Buf[21], line2Buf[21], line3Buf[21], line4Buf[21];
+      snprintf(line1Buf, sizeof(line1Buf), "Time: %02d:%02d:%02d", rtcTime.hour(), rtcTime.minute(), rtcTime.second());
+      snprintf(line2Buf, sizeof(line2Buf), WiFi.status() == WL_CONNECTED ? "WiFi: Connected" : "WiFi: Disconnected");
+      snprintf(line3Buf, sizeof(line3Buf), "Mode: %.14s", manualMode.c_str());
+      if (isScheduleRunning && currentUnix < scheduleEndTime) {
+        int rem = scheduleEndTime - currentUnix;
+        snprintf(line4Buf, sizeof(line4Buf), "Run:%s %02dm%02ds",
+          (runningScheduleType == "water" ? "AIR" : "PPK"), rem/60, rem%60);
+      } else {
+        String nxt = ""; String nxtT = "";
+        if (getNextSchedule(rtcTime, nxt, nxtT)) {
+          snprintf(line4Buf, sizeof(line4Buf), "Nxt:%s %s", nxtT.c_str(), nxt.c_str());
+        } else {
+          snprintf(line4Buf, sizeof(line4Buf), "Next: None");
+        }
+      }
+      char lcdPayload[160];
+      snprintf(lcdPayload, sizeof(lcdPayload),
+        "{\"line1\":\"%s\",\"line2\":\"%s\",\"line3\":\"%s\",\"line4\":\"%s\"}",
+        line1Buf, line2Buf, line3Buf, line4Buf);
+      client.publish("greenhouse-cibatu/status/lcd", lcdPayload, true);
+    }
+  }
+
+  // ====== 2. CEK HITUNG MUNDUR (DURASI MENYALA) & BUZZER ======
+  if (isScheduleRunning) {
+    if (currentUnix >= scheduleEndTime) {
+      Serial.println("⏰ Durasi habis! Mematikan semua.");
+      digitalWrite(BUZZER_PIN, HIGH);
+      delay(500);
+      digitalWrite(BUZZER_PIN, LOW);
+
+      // Laporkan eksekusi jadwal selesai ke backend via MQTT
+      if (client.connected() && strlen(runningScheduleName) > 0) {
+        char execPayload[128];
+        snprintf(execPayload, sizeof(execPayload),
+          "{\"name\":\"%s\",\"type\":\"%s\",\"method\":\"%s\",\"duration\":%d}",
+          runningScheduleName, runningScheduleType.c_str(), runningScheduleMethod, runningScheduleDuration);
+        client.publish("greenhouse-cibatu/status/execution", execPayload, false);
+        Serial.println("📤 Laporan jadwal selesai dikirim ke backend.");
+      }
+      
+      turnOffAll();
+      isScheduleRunning = false;
+      runningScheduleType = "";
+      runningScheduleName[0] = '\0';
+      lcd.clear();
+    } else {
+      int remainingSec = scheduleEndTime - currentUnix;
+      handleBuzzer(remainingSec);
+    }
+  }
+
+  // ====== 3. CEK JAM ALARM PENYIRAMAN (CEK SETIAP BERGANTI MENIT) ======
+  if (rtcTime.minute() != lastCheckedMinute) {
+    lastCheckedMinute = rtcTime.minute();
+    int currentDay = rtcTime.dayOfTheWeek(); // 0 = Minggu, 1 = Senin, dst.
+
+    // Hanya picu jadwal jika alat sedang tidak menyala (tidak bentrok)
+    if (!isScheduleRunning) {
+      for (int i = 0; i < activeScheduleCount; i++) {
+        IrrigationSchedule &s = localSchedules[i];
+        if (!s.enabled || strcmp(s.method, "alarm") != 0) continue;
+
+        if (s.days[currentDay] && rtcTime.hour() == s.hour && rtcTime.minute() == s.minute) {
+          Serial.printf("🎯 ALARM DIPICU: %s (%s) selama %d menit.\n", s.name, s.type, s.duration);
+          
+          isScheduleRunning = true;
+          runningScheduleType = String(s.type);
+          scheduleEndTime = currentUnix + (s.duration * 60);
+          manualMode = "SCHEDULE";
+          // Simpan info jadwal untuk laporan selesai nanti
+          strlcpy(runningScheduleName, s.name, sizeof(runningScheduleName));
+          strlcpy(runningScheduleMethod, s.method, sizeof(runningScheduleMethod));
+          runningScheduleDuration = s.duration;
+          activateRelay(s.type);
+          lcd.clear();
+          break;
+        }
+      }
+    }
+  }
+
+  // ====== 4. HEARTBEAT KE WEB ======
+  if (client.connected() && (now - lastHeartbeat > heartbeatInterval)) {
+    lastHeartbeat = now;
+    client.publish(topic_status, "online", true);
+  }
+}
