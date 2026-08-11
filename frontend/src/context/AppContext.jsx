@@ -12,7 +12,6 @@ export const AppProvider = ({ children }) => {
     const [unreadNotifCount, setUnreadNotifCount] = useState(0);
     const [toasts, setToasts] = useState([]);
     const [isNotifOpen, setIsNotifOpen] = useState(false);
-    const [weather, setWeather] = useState({ temperature: 24.0, humidity: 68.0 });
     const [timers, setTimers] = useState({});
     const [deferredPrompt, setDeferredPrompt] = useState(null);
     const [isTourActive, setIsTourActive] = useState(false);
@@ -20,6 +19,8 @@ export const AppProvider = ({ children }) => {
     // ---- MQTT State ----
     const [mqttConnected, setMqttConnected] = useState(false);
     const [espOnline, setEspOnline] = useState(false); // Track ESP32 online/offline
+    // LCD Live Monitor: menyimpan 4 baris teks dari layar LCD ESP32
+    const [lcdStatus, setLcdStatus] = useState(null);
     const [mqttConfig, setMqttConfig] = useState(() => ({
         host: localStorage.getItem('mqtt_host') || 'broker.hivemq.com',
         port: localStorage.getItem('mqtt_port') || '8884',
@@ -59,8 +60,44 @@ export const AppProvider = ({ children }) => {
                         showToast('wifi', 'ESP32 Terhubung', 'success', true);
                     } else if (message === 'offline') {
                         setEspOnline(false);
+                        setLcdStatus(null); // Reset LCD saat ESP offline
                         showToast('wifi_off', 'ESP32 Terputus (Offline)', 'error', true);
                     }
+                }
+                // Handle LCD Live Status dari ESP32
+                if (topic === 'greenhouse-cibatu/status/lcd') {
+                    try {
+                        const parsed = JSON.parse(message);
+                        setLcdStatus(parsed); // { line1, line2, line3, line4 }
+                    } catch(e) {
+                        // Jika bukan JSON, abaikan
+                    }
+                }
+                // [BUG FIX 2+4] Sinkronisasi status katup realtime saat ESP32 menjalankan jadwal
+                // ESP32 mengirim {"mode": "water/fertilizer/off"} setiap kali relay berubah
+                if (topic === 'greenhouse-cibatu/status/solenoids') {
+                    try {
+                        const parsed = JSON.parse(message);
+                        const espMode = parsed.mode; // 'water', 'fertilizer', atau 'off'
+                        // Update state solenoid di frontend sesuai kondisi fisik alat
+                        setSolenoids(prev => prev.map(s => ({
+                            ...s,
+                            is_active: espMode === s.type ? 1 : 0
+                        })));
+                        // Tampilkan toast kecil saat jadwal otomatis berjalan (tanpa getar HP)
+                        if (espMode !== 'off') {
+                            showToast(
+                                espMode === 'water' ? 'opacity' : 'science',
+                                `Jadwal ${espMode === 'water' ? 'Air' : 'Pupuk'} sedang berjalan (ESP32)`,
+                                'success',
+                                true
+                            );
+                        }
+                        // Refresh riwayat untuk ambil data terbaru dari DB
+                        fetchHistory();
+                        fetchNotifications();
+                        fetchUnreadCount();
+                    } catch(e) {}
                 }
                 // Future: Handle incoming telemetry from ESP32
             },
@@ -220,31 +257,15 @@ export const AppProvider = ({ children }) => {
         }
     }, [authFetch]);
 
-    const fetchLatestWeather = useCallback(async () => {
-        try {
-            const res = await authFetch('/api/weather/latest');
-            if (res.ok) {
-                const data = await res.json();
-                setWeather({
-                    temperature: data.temperature,
-                    humidity: data.humidity
-                });
-            }
-        } catch (err) {
-            console.error('Fetch weather failed:', err);
-        }
-    }, [authFetch]);
-
     const refreshSemua = useCallback(async () => {
         await Promise.all([
             fetchSolenoids(),
             fetchSchedules(),
             fetchHistory(),
             fetchNotifications(),
-            fetchUnreadCount(),
-            fetchLatestWeather()
+            fetchUnreadCount()
         ]);
-    }, [fetchSolenoids, fetchSchedules, fetchHistory, fetchNotifications, fetchUnreadCount, fetchLatestWeather]);
+    }, [fetchSolenoids, fetchSchedules, fetchHistory, fetchNotifications, fetchUnreadCount]);
 
 
     // ---- Solenoid Control ----
@@ -252,17 +273,22 @@ export const AppProvider = ({ children }) => {
         try {
             // IF MQTT IS CONNECTED, PUBLISH TO MQTT FOR ZERO-DELAY
             if (mqttConnected && mqttConfig.pubTopic) {
-                const payload = { action: 'set_mode', mode: mode };
+                // [BUG FIX 3] Sertakan secret key di payload agar ESP32 mau menerima perintah
+                const payload = { action: 'set_mode', mode: mode, key: 'GH_SECRET_2026' };
                 if (duration) payload.duration = duration;
                 MqttService.publish(mqttConfig.pubTopic, payload);
                 console.log('[MQTT] Published mode:', mode, 'duration:', duration);
             }
 
+            // [BUG FIX 1] Kirim JUGA duration ke HTTP agar tersimpan & sinkron meski MQTT gagal
+            const httpBody = { mode };
+            if (duration) httpBody.duration = duration;
+
             // ALWAYS FALLBACK TO HTTP API TO UPDATE DATABASE & SYNC STATE
             const res = await authFetch('/api/solenoids/mode', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mode })
+                body: JSON.stringify(httpBody)
             });
             if (res.ok) {
                 const updated = await res.json();
@@ -436,13 +462,12 @@ export const AppProvider = ({ children }) => {
                 fetchSolenoids(),
                 fetchHistory(),
                 fetchNotifications(),
-                fetchUnreadCount(),
-                fetchLatestWeather()
+                fetchUnreadCount()
             ]);
         }, 15000);
 
         return () => clearInterval(interval);
-    }, [refreshSemua, fetchSolenoids, fetchHistory, fetchNotifications, fetchUnreadCount, fetchLatestWeather]);
+    }, [refreshSemua, fetchSolenoids, fetchHistory, fetchNotifications, fetchUnreadCount]);
 
     // Timer control functions
     const updateTimer = useCallback((id, data) => {
@@ -518,7 +543,6 @@ export const AppProvider = ({ children }) => {
             toasts,
             isNotifOpen,
             setIsNotifOpen,
-            weather,
             timers,
             updateTimer,
             initTimer,
@@ -542,6 +566,7 @@ export const AppProvider = ({ children }) => {
             setIsTourActive,
             mqttConnected,
             espOnline,
+            lcdStatus,
             mqttConfig,
             saveMqttConfig,
             connectMqtt,

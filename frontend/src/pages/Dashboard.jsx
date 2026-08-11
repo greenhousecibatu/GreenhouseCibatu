@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 
 export default function Dashboard() {
-    const { solenoids, setManualMode, history, setCurrentPage, weather, deferredPrompt, installPwa, espOnline, mqttConnected } = useApp();
+    const { solenoids, setManualMode, history, setCurrentPage, deferredPrompt, installPwa, espOnline, mqttConnected, lcdStatus } = useApp();
     const [confirmMode, setConfirmMode] = useState(null);
     const [manualDuration, setManualDuration] = useState(5);
 
@@ -104,6 +104,37 @@ export default function Dashboard() {
                         </div>
                     );
                 })()}
+            </div>
+
+            {/* LCD Live Monitor */}
+            <div className="space-y-card-gap">
+                <div className="flex justify-between items-center px-1">
+                    <h2 className="font-title-md text-title-md text-on-surface">LCD Monitor</h2>
+                    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-label-bold ${
+                        lcdStatus ? 'bg-success/10 text-success' : 'bg-outline/10 text-outline'
+                    }`}>
+                        <div className={`w-2 h-2 rounded-full ${
+                            lcdStatus ? 'bg-success animate-pulse' : 'bg-outline'
+                        }`}></div>
+                        {lcdStatus ? 'Live' : 'Tidak Ada Sinyal'}
+                    </div>
+                </div>
+                <div className="bg-gray-900 rounded-xl p-4 border border-gray-700 shadow-inner font-mono text-sm">
+                    {lcdStatus ? (
+                        <div className="space-y-1">
+                            {[lcdStatus.line1, lcdStatus.line2, lcdStatus.line3, lcdStatus.line4].map((line, i) => (
+                                <div key={i} className="text-green-400 tracking-wider truncate" style={{ minHeight: '1.25rem' }}>
+                                    {line || '\u00a0'}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-4">
+                            <p className="text-gray-500 text-xs">Menunggu data dari ESP32...</p>
+                            <p className="text-gray-600 text-xs mt-1">Pastikan alat menyala dan MQTT terhubung</p>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Aktivitas Terbaru Log */}

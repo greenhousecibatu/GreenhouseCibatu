@@ -19,7 +19,7 @@ const SolenoidController = {
 
     setMode: async (req, res) => {
         try {
-            const { mode } = req.body; // 'off', 'water', 'fertilizer'
+            const { mode, duration } = req.body; // 'off', 'water', 'fertilizer'
             if (!['off', 'water', 'fertilizer'].includes(mode)) {
                 return res.status(400).json({ error: 'Invalid mode' });
             }
@@ -48,12 +48,14 @@ const SolenoidController = {
                 action = 'Katup Pupuk Dinyalakan';
             }
 
+            const durationStr = duration ? `${duration} menit` : '—';
+
             // Log event to history
             await HistoryModel.create({
                 type: mode === 'off' ? 'water' : mode,
                 action: action,
                 detail: `Manual Mode: ${mode.toUpperCase()}`,
-                duration: '—',
+                duration: durationStr,
                 status: 'success'
             });
 

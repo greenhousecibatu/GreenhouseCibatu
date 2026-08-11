@@ -1,5 +1,7 @@
 const mqtt = require('mqtt');
 const ScheduleModel = require('../models/scheduleModel');
+const HistoryModel = require('../models/historyModel');
+const NotificationModel = require('../models/notificationModel');
 
 const MQTT_BROKER = 'mqtts://broker.hivemq.com:8883';
 const SYNC_TOPIC = 'greenhouse-cibatu/schedules/sync'; // Disesuaikan dengan Arduino
@@ -8,7 +10,9 @@ let client;
 
 const MqttService = {
     connect: () => {
-        if (process.env.VERCEL) return;
+        // [BUG FIX 5] Izinkan MQTT berjalan di Vercel agar backend bisa terima laporan jadwal
+        // Catatan: di lingkungan Serverless (Vercel), proses ini akan di-invoke pada setiap request
+        // tapi setidaknya memberi kesempatan untuk connect dan publish.
 
         const mqttOptions = {
             clientId: `agrilog-backend-${Math.random().toString(16).slice(2, 8)}`,
@@ -19,11 +23,48 @@ const MqttService = {
         client.on('connect', () => {
             console.log('🔗 Backend connected to MQTT Broker');
             client.subscribe('greenhouse-cibatu/status');
+            // Dengarkan permintaan sinkronisasi aktif dari ESP32
+            client.subscribe('greenhouse-cibatu/schedules/request');
+            // Dengarkan laporan eksekusi jadwal dari ESP32
+            client.subscribe('greenhouse-cibatu/status/execution');
         });
         
-        client.on('message', (topic, message) => {
+        client.on('message', async (topic, message) => {
             if (topic === 'greenhouse-cibatu/status' && message.toString() === 'online') {
+                // ESP32 muncul online → kirim jadwal
                 MqttService.publishSchedules();
+            }
+            if (topic === 'greenhouse-cibatu/schedules/request') {
+                // ESP32 secara aktif meminta data jadwal terbaru
+                console.log('📥 ESP32 meminta sinkronisasi jadwal...');
+                MqttService.publishSchedules();
+            }
+            if (topic === 'greenhouse-cibatu/status/execution') {
+                // ESP32 melaporkan jadwal selesai dijalankan
+                try {
+                    const data = JSON.parse(message.toString());
+                    const typeName = data.type === 'water' ? 'Air' : 'Pupuk';
+                    const durationStr = data.duration ? `${data.duration} menit` : '—';
+                    console.log(`📋 Jadwal selesai: ${data.name} (${typeName}) selama ${durationStr}`);
+
+                    await HistoryModel.create({
+                        type: data.type || 'water',
+                        action: `Jadwal ${typeName} Selesai: ${data.name || 'Tanpa Nama'}`,
+                        detail: `Otomatis via Jadwal (${data.method || 'alarm'})`,
+                        duration: durationStr,
+                        status: 'success'
+                    });
+
+                    await NotificationModel.create({
+                        type: 'success',
+                        title: `✅ Jadwal ${typeName} Selesai`,
+                        message: `"${data.name || 'Jadwal'}" berhasil dijalankan selama ${durationStr}.`
+                    });
+
+                    console.log('✅ Riwayat jadwal berhasil disimpan ke database.');
+                } catch (e) {
+                    console.error('❌ Gagal parse laporan eksekusi jadwal:', e.message);
+                }
             }
         });
 

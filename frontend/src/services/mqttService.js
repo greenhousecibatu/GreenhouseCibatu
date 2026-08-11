@@ -42,6 +42,10 @@ export const MqttService = {
             const topicsToSub = [];
             if (subTopic) topicsToSub.push(subTopic);
             if (statusTopic) topicsToSub.push(statusTopic);
+            // Subscribe ke topik LCD live status dari ESP32
+            topicsToSub.push('greenhouse-cibatu/status/lcd');
+            // [BUG FIX 2+4] Subscribe ke status solenoid untuk sinkronisasi realtime
+            topicsToSub.push('greenhouse-cibatu/status/solenoids');
 
             if (topicsToSub.length > 0) {
                 client.subscribe(topicsToSub, (err) => {

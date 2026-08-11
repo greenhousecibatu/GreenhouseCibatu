@@ -11,7 +11,6 @@ const SolenoidController = require('../controllers/solenoidController');
 const ScheduleController = require('../controllers/scheduleController');
 const HistoryController = require('../controllers/historyController');
 const NotificationController = require('../controllers/notificationController');
-const WeatherController = require('../controllers/weatherController');
 
 // ---- Public Routes (tanpa login) ----
 router.post('/auth/login', AuthController.login);
@@ -23,9 +22,6 @@ router.get('/auth/verify', authMiddleware, AuthController.verify);
 router.get('/solenoids', authMiddleware, SolenoidController.getAll);
 router.put('/solenoids/mode', authMiddleware, SolenoidController.setMode);
 router.put('/solenoids/:id/toggle', authMiddleware, SolenoidController.toggle);
-
-// Weather
-router.get('/weather/latest', authMiddleware, WeatherController.getLatest);
 
 // Schedules
 router.get('/schedules', authMiddleware, ScheduleController.getAll);
