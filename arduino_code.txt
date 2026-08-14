@@ -260,16 +260,10 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
     JsonArray arr = doc.as<JsonArray>();
     
-    // ⚠️ PERLINDUNGAN NVS: Jika backend mengirim array KOSONG,
-    // jangan hapus jadwal yang sudah tersimpan di memori permanen!
-    // Ini mencegah jadwal hilang akibat kiriman error dari server.
-    if (arr.size() == 0) {
-      Serial.println("⚠️ Sinkronisasi diabaikan: Backend mengirim jadwal kosong. Data NVS dipertahankan.");
-      return;
-    }
-
+    // Sinkronisasi cerdas: terima data apa adanya dari backend (termasuk array kosong)
+    // Jika backend mengirim 0 jadwal, artinya semua jadwal sudah dihapus oleh user
     int newCount = 0;
-    IrrigationSchedule tempSchedules[MAX_SCHEDULES]; // Tampung dulu ke temp
+    IrrigationSchedule tempSchedules[MAX_SCHEDULES];
     for (JsonObject obj : arr) {
       if (newCount >= MAX_SCHEDULES) break;
       bool enabled = obj["enabled"] | false;
@@ -305,15 +299,12 @@ void callback(char* topic, byte* payload, unsigned int length) {
       newCount++;
     }
     
-    // Hanya update & simpan jika ada jadwal yang valid masuk
-    if (newCount > 0) {
-      memcpy(localSchedules, tempSchedules, sizeof(IrrigationSchedule) * newCount);
-      activeScheduleCount = newCount;
-      Serial.printf("✅ Total %d jadwal aktif tersimpan.\n", activeScheduleCount);
-      saveSchedulesToNVS(); // Simpan ke flash memory!
-    } else {
-      Serial.println("⚠️ Semua jadwal di-nonaktifkan. NVS dipertahankan dari data sebelumnya.");
-    }
+    // Update jadwal dan simpan ke NVS
+    // Jika newCount == 0, artinya semua jadwal dihapus dari web → bersihkan NVS
+    memcpy(localSchedules, tempSchedules, sizeof(IrrigationSchedule) * newCount);
+    activeScheduleCount = newCount;
+    Serial.printf("✅ Sinkronisasi selesai: %d jadwal aktif tersimpan.\n", activeScheduleCount);
+    saveSchedulesToNVS();
   } 
   else {
     StaticJsonDocument<256> doc;
@@ -321,11 +312,32 @@ void callback(char* topic, byte* payload, unsigned int length) {
     if (error) { Serial.println("❌ Gagal parse JSON!"); return; }
     
     // [BUG FIX 3] Validasi kunci keamanan sebelum eksekusi perintah
-    // Hanya proses perintah jika kunci cocok, untuk cegah kontrol dari luar
     const char* receivedKey = doc["key"] | "";
     if (strcmp(receivedKey, COMMAND_SECRET_KEY) != 0) {
       Serial.println("🔒 Perintah DITOLAK: Kunci keamanan tidak valid!");
-      return; // Hentikan proses, abaikan perintah
+      return;
+    }
+
+    // [FITUR 4] Handler Reset WiFi dan Restart dari web
+    const char* action = doc["action"] | "";
+    if (strcmp(action, "reset_wifi") == 0) {
+      Serial.println("🔄 Reset WiFi diterima dari web! Menghapus data WiFi...");
+      lcd.clear();
+      lcd.setCursor(0, 0); lcd.print("Reset WiFi...");
+      lcd.setCursor(0, 1); lcd.print("Restart ESP32...");
+      delay(1000);
+      WiFiManager wm;
+      wm.resetSettings(); // Hapus WiFi tersimpan
+      ESP.restart();       // Reboot → otomatis buka hotspot Greenhouse_Cibatu
+      return;
+    }
+    if (strcmp(action, "restart") == 0) {
+      Serial.println("🔄 Restart diterima dari web!");
+      lcd.clear();
+      lcd.setCursor(0, 0); lcd.print("Restart ESP32...");
+      delay(1000);
+      ESP.restart();
+      return;
     }
     
     const char* mode = doc["mode"];
@@ -440,8 +452,6 @@ void setup() {
   if (!rtc.begin()) {
     Serial.println("⚠️ RTC Error! Pastikan modul RTC terhubung.");
     lcd.clear(); lcd.setCursor(0, 0); lcd.print("RTC Error!");
-  } else {
-    // rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); // Buka komentar baris ini SATU KALI saja jika jam RTC ngaco
   }
 
   // BACA NVS SEBELUM KONEK WIFI (Memastikan Jadwal Siap 100% saat Offline)

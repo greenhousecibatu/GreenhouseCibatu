@@ -201,6 +201,66 @@ export default function Settings({ onLogout }) {
                 </div>
             </div>
 
+            {/* ESP32 Device Control */}
+            <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/20 overflow-hidden">
+                <div className="p-lg border-b border-outline-variant/20">
+                    <h3 className="font-title-md text-title-md text-on-surface mb-1">Kontrol Alat ESP32</h3>
+                    <p className="font-body-sm text-body-sm text-on-surface-variant">Kelola perangkat keras irigasi</p>
+                </div>
+                <div className="divide-y divide-outline-variant/20">
+                    <button
+                        onClick={() => {
+                            if (!mqttConnected) {
+                                return showToast('error', 'MQTT belum terhubung. Hubungkan broker terlebih dahulu.', 'error');
+                            }
+                            if (window.confirm('PERINGATAN: Reset WiFi ESP32?\n\nAlat akan memutus koneksi WiFi saat ini dan memunculkan hotspot "Greenhouse_Cibatu" untuk konfigurasi ulang.\n\nPastikan Anda berada di dekat alat untuk mengkonfigurasi WiFi baru.')) {
+                                const { default: MqttService } = require('../services/mqttService');
+                                MqttService.publish(mqttConfig.pubTopic, { 
+                                    action: 'reset_wifi', 
+                                    key: 'GH_SECRET_2026' 
+                                });
+                                showToast('wifi', 'Perintah Reset WiFi dikirim ke ESP32. Alat akan restart...', 'success');
+                            }
+                        }}
+                        className="flex items-center justify-between p-md px-lg w-full hover:bg-surface-container-low transition-colors"
+                    >
+                        <div className="flex items-center gap-3">
+                            <span className="material-symbols-outlined text-warning" style={{ color: '#F59E0B' }}>wifi_off</span>
+                            <div className="text-left">
+                                <span className="font-body-sm text-body-sm text-on-surface block">Reset WiFi ESP32</span>
+                                <span className="font-label-caps text-[10px] text-outline">Munculkan hotspot Greenhouse_Cibatu untuk ganti WiFi</span>
+                            </div>
+                        </div>
+                        <span className="material-symbols-outlined text-outline text-base">chevron_right</span>
+                    </button>
+                    <button
+                        onClick={() => {
+                            if (!mqttConnected) {
+                                return showToast('error', 'MQTT belum terhubung.', 'error');
+                            }
+                            if (window.confirm('Restart ESP32?\n\nAlat akan mati sebentar dan menyala kembali.')) {
+                                const { default: MqttService } = require('../services/mqttService');
+                                MqttService.publish(mqttConfig.pubTopic, { 
+                                    action: 'restart', 
+                                    key: 'GH_SECRET_2026' 
+                                });
+                                showToast('restart_alt', 'Perintah restart dikirim ke ESP32.', 'success');
+                            }
+                        }}
+                        className="flex items-center justify-between p-md px-lg w-full hover:bg-surface-container-low transition-colors"
+                    >
+                        <div className="flex items-center gap-3">
+                            <span className="material-symbols-outlined text-secondary">restart_alt</span>
+                            <div className="text-left">
+                                <span className="font-body-sm text-body-sm text-on-surface block">Restart ESP32</span>
+                                <span className="font-label-caps text-[10px] text-outline">Muat ulang alat tanpa reset WiFi</span>
+                            </div>
+                        </div>
+                        <span className="material-symbols-outlined text-outline text-base">chevron_right</span>
+                    </button>
+                </div>
+            </div>
+
             {/* Data Management */}
             <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/20 overflow-hidden">
                 <div className="p-lg border-b border-outline-variant/20">
