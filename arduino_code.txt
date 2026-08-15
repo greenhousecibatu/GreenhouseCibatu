@@ -325,10 +325,13 @@ void callback(char* topic, byte* payload, unsigned int length) {
       lcd.clear();
       lcd.setCursor(0, 0); lcd.print("Reset WiFi...");
       lcd.setCursor(0, 1); lcd.print("Restart ESP32...");
-      delay(1000);
+      
       WiFi.disconnect(true, true); // Hapus memori WiFi internal ESP32 agar amnesia total
+      delay(500);
       WiFiManager wm;
       wm.resetSettings(); // Hapus WiFi tersimpan
+      delay(2000); // Beri waktu 2 detik agar penghapusan tersimpan ke chip memori sebelum mati
+      
       ESP.restart();       // Reboot → otomatis buka hotspot Greenhouse_Cibatu
       return;
     }

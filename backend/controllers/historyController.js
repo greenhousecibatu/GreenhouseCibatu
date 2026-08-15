@@ -33,8 +33,8 @@ const HistoryController = {
             const typeName = type === 'water' ? 'Air' : 'Pupuk';
             const durationStr = duration ? `${duration} menit` : '—';
             
-            // Simpan riwayat
-            const historyData = await HistoryModel.create({
+            // Simpan riwayat (dengan deduplikasi)
+            const result = await HistoryModel.create({
                 type: type || 'water',
                 action: `Jadwal ${typeName} Selesai: ${name || 'Tanpa Nama'}`,
                 detail: `Otomatis via Jadwal (${method || 'alarm'})`,
@@ -42,14 +42,16 @@ const HistoryController = {
                 status: 'success'
             });
 
-            // Buat notifikasi
-            await NotificationModel.create({
-                type: 'success',
-                title: `✅ Jadwal ${typeName} Selesai`,
-                message: `"${name || 'Jadwal'}" berhasil dijalankan selama ${durationStr}.`
-            });
+            // Buat notifikasi HANYA jika riwayat baru benar-benar dibuat (bukan duplikat dari tab lain)
+            if (!result.isDuplicate) {
+                await NotificationModel.create({
+                    type: 'success',
+                    title: `✅ Jadwal ${typeName} Selesai`,
+                    message: `"${name || 'Jadwal'}" berhasil dijalankan selama ${durationStr}.`
+                });
+            }
 
-            res.json({ success: true, history: historyData });
+            res.json({ success: true, history: result.record });
         } catch (err) {
             console.error('Failed to create history:', err);
             res.status(500).json({ error: 'Failed to create history record' });

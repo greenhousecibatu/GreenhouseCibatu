@@ -39,33 +39,6 @@ const MqttService = {
                 console.log('📥 ESP32 meminta sinkronisasi jadwal...');
                 MqttService.publishSchedules();
             }
-            if (topic === 'greenhouse-cibatu/status/execution') {
-                // ESP32 melaporkan jadwal selesai dijalankan
-                try {
-                    const data = JSON.parse(message.toString());
-                    const typeName = data.type === 'water' ? 'Air' : 'Pupuk';
-                    const durationStr = data.duration ? `${data.duration} menit` : '—';
-                    console.log(`📋 Jadwal selesai: ${data.name} (${typeName}) selama ${durationStr}`);
-
-                    await HistoryModel.create({
-                        type: data.type || 'water',
-                        action: `Jadwal ${typeName} Selesai: ${data.name || 'Tanpa Nama'}`,
-                        detail: `Otomatis via Jadwal (${data.method || 'alarm'})`,
-                        duration: durationStr,
-                        status: 'success'
-                    });
-
-                    await NotificationModel.create({
-                        type: 'success',
-                        title: `✅ Jadwal ${typeName} Selesai`,
-                        message: `"${data.name || 'Jadwal'}" berhasil dijalankan selama ${durationStr}.`
-                    });
-
-                    console.log('✅ Riwayat jadwal berhasil disimpan ke database.');
-                } catch (e) {
-                    console.error('❌ Gagal parse laporan eksekusi jadwal:', e.message);
-                }
-            }
         });
 
         client.on('error', (err) => {

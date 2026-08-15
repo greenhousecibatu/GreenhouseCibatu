@@ -23,6 +23,21 @@ const HistoryModel = {
 
     create: async (data) => {
         const { type, action, detail, duration, status } = data;
+
+        // [BUG FIX] Deduplikasi: Cek apakah ada record yang persis sama dalam 10 detik terakhir
+        // Ini mencegah duplikat jika multiple browser tabs terbuka dan mengirim POST /history bersamaan
+        const tenSecondsAgo = new Date(Date.now() - 10000);
+        const duplicate = await History.findOne({
+            action,
+            detail,
+            created_at: { $gte: tenSecondsAgo }
+        });
+
+        if (duplicate) {
+            console.log('Deduplikasi: Mengabaikan riwayat ganda', action);
+            return { record: duplicate, isDuplicate: true }; // Kembalikan yang sudah ada, jangan buat baru
+        }
+
         const record = new History({
             type,
             action,
@@ -30,8 +45,8 @@ const HistoryModel = {
             duration: duration || '—',
             status: status || 'success'
         });
-        await record.save();
-        return record.toObject();
+        const saved = await record.save();
+        return { record: saved, isDuplicate: false };
     },
 
     deleteOldRecords: async () => {
