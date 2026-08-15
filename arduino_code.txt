@@ -61,6 +61,18 @@ struct IrrigationSchedule {
 IrrigationSchedule localSchedules[MAX_SCHEDULES];
 int activeScheduleCount = 0;
 
+// --- 5.1 DATA STRUCTURE ANTREAN OFFLINE ---
+struct OfflineReport {
+  char name[32];
+  char type[16];
+  char method[16];
+  int duration;
+};
+
+#define MAX_OFFLINE_REPORTS 10
+OfflineReport offlineQueue[MAX_OFFLINE_REPORTS];
+int offlineCount = 0;
+
 // Status Eksekusi
 bool isScheduleRunning = false;
 uint32_t scheduleEndTime = 0;
@@ -102,6 +114,26 @@ void loadSchedulesFromNVS() {
   }
   preferences.end();
   Serial.printf("📂 NVS: %d jadwal dimuat dari memori permanen (Bisa jalan OFFLINE).\n", activeScheduleCount);
+}
+
+void saveOfflineQueueToNVS() {
+  preferences.begin("offline_queue", false);
+  preferences.putInt("q_count", offlineCount);
+  if (offlineCount > 0) {
+    preferences.putBytes("q_data", &offlineQueue, sizeof(OfflineReport) * offlineCount);
+  }
+  preferences.end();
+  Serial.printf("💾 NVS: %d antrean offline disimpan.\n", offlineCount);
+}
+
+void loadOfflineQueueFromNVS() {
+  preferences.begin("offline_queue", true);
+  offlineCount = preferences.getInt("q_count", 0);
+  if (offlineCount > 0) {
+    preferences.getBytes("q_data", &offlineQueue, sizeof(OfflineReport) * offlineCount);
+  }
+  preferences.end();
+  Serial.printf("📂 NVS: %d antrean offline dimuat.\n", offlineCount);
 }
 
 // =============================================
@@ -421,6 +453,22 @@ void reconnectNonBlocking() {
         client.publish(topic_request_sync, "request", false);
         Serial.println("📤 Permintaan sinkronisasi jadwal dikirim ke backend.");
         
+        // 📤 KIRIM ANTREAN OFFLINE JIKA ADA
+        if (offlineCount > 0) {
+          Serial.printf("📤 Mengirim %d laporan jadwal yang tertunda selama offline...\n", offlineCount);
+          for (int i = 0; i < offlineCount; i++) {
+            char execPayload[128];
+            snprintf(execPayload, sizeof(execPayload),
+              "{\"name\":\"%s\",\"type\":\"%s\",\"method\":\"%s\",\"duration\":%d}",
+              offlineQueue[i].name, offlineQueue[i].type, offlineQueue[i].method, offlineQueue[i].duration);
+            client.publish("greenhouse-cibatu/status/execution", execPayload, false);
+            delay(100); // Beri jeda 100ms per pengiriman agar tidak spam ke MQTT broker
+          }
+          Serial.println("✅ Semua laporan tertunda berhasil dikirim.");
+          offlineCount = 0;
+          saveOfflineQueueToNVS(); // Kosongkan dari NVS
+        }
+
         lastReconnectAttempt = 0; 
       } else {
         Serial.printf("❌ Gagal konek, rc=%d. Berjalan mode OFFLINE.\n", client.state());
@@ -460,6 +508,7 @@ void setup() {
 
   // BACA NVS SEBELUM KONEK WIFI (Memastikan Jadwal Siap 100% saat Offline)
   loadSchedulesFromNVS();
+  loadOfflineQueueFromNVS(); // Baca juga laporan tertunda (jika ada)
 
   // Koneksi WiFi dengan WiFiManager
   setup_wifi();
@@ -566,14 +615,36 @@ void loop() {
       delay(500);
       digitalWrite(BUZZER_PIN, LOW);
 
-      // Laporkan eksekusi jadwal selesai ke backend via MQTT
-      if (client.connected() && strlen(runningScheduleName) > 0) {
-        char execPayload[128];
-        snprintf(execPayload, sizeof(execPayload),
-          "{\"name\":\"%s\",\"type\":\"%s\",\"method\":\"%s\",\"duration\":%d}",
-          runningScheduleName, runningScheduleType.c_str(), runningScheduleMethod, runningScheduleDuration);
-        client.publish("greenhouse-cibatu/status/execution", execPayload, false);
-        Serial.println("📤 Laporan jadwal selesai dikirim ke backend.");
+      // Laporkan eksekusi jadwal selesai ke backend via MQTT (atau simpan ke antrean offline)
+      if (strlen(runningScheduleName) > 0) {
+        if (client.connected()) {
+          char execPayload[128];
+          snprintf(execPayload, sizeof(execPayload),
+            "{\"name\":\"%s\",\"type\":\"%s\",\"method\":\"%s\",\"duration\":%d}",
+            runningScheduleName, runningScheduleType.c_str(), runningScheduleMethod, runningScheduleDuration);
+          client.publish("greenhouse-cibatu/status/execution", execPayload, false);
+          Serial.println("📤 Laporan jadwal selesai dikirim ke backend.");
+        } else {
+          Serial.println("⚠️ OFFLINE! Menabung laporan ke antrean memori ESP32.");
+          // Simpan ke antrean (tumpuk yang paling lama jika penuh)
+          int idx = offlineCount;
+          if (idx >= MAX_OFFLINE_REPORTS) {
+            // Geser semua data ke kiri (buang yang paling tua di index 0)
+            for (int i = 0; i < MAX_OFFLINE_REPORTS - 1; i++) {
+              offlineQueue[i] = offlineQueue[i + 1];
+            }
+            idx = MAX_OFFLINE_REPORTS - 1;
+          } else {
+            offlineCount++;
+          }
+          
+          strncpy(offlineQueue[idx].name, runningScheduleName, sizeof(offlineQueue[idx].name));
+          strncpy(offlineQueue[idx].type, runningScheduleType.c_str(), sizeof(offlineQueue[idx].type));
+          strncpy(offlineQueue[idx].method, runningScheduleMethod, sizeof(offlineQueue[idx].method));
+          offlineQueue[idx].duration = runningScheduleDuration;
+          
+          saveOfflineQueueToNVS();
+        }
       }
       
       turnOffAll();
