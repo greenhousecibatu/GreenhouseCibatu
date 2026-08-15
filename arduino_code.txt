@@ -91,6 +91,10 @@ const long heartbeatInterval = 15000;
 unsigned long lastReconnectAttempt = 0; 
 bool buzzerActive = false;
 
+// --- 6.1 ON-DEMAND CONFIG PORTAL NON-BLOCKING ---
+bool wifiPortalActive = false;
+WiFiManager wmPortal;
+
 // Simpan info jadwal yang sedang berjalan untuk laporan selesai
 char runningScheduleName[32] = "";
 char runningScheduleMethod[16] = "alarm";
@@ -360,25 +364,12 @@ void callback(char* topic, byte* payload, unsigned int length) {
       lcd.setCursor(0, 1); lcd.print("Greenhouse_Cibatu");
       lcd.setCursor(0, 2); lcd.print("IP: 192.168.4.1");
       
-      // Putuskan MQTT agar tidak terjadi konflik jaringan
-      client.disconnect();
-
-      // Gunakan fitur On-Demand Config Portal dari WiFiManager
-      WiFiManager wm;
-      // Set batas waktu 5 menit (300 detik), jika tidak ada yang ganti WiFi, kembali normal
-      wm.setConfigPortalTimeout(300); 
+      wmPortal.setAPCallback(configModeCallback);
+      wmPortal.setConfigPortalTimeout(300);       // 5 menit, kalau tidak diisi kembali normal
+      wmPortal.setConfigPortalBlocking(false);    // PENTING: non-blocking, biar loop() & MQTT tetap jalan
       
-      // Buka hotspot Greenhouse_Cibatu sekarang juga tanpa harus restart atau hapus memori
-      if (!wm.startConfigPortal("Greenhouse_Cibatu")) {
-        Serial.println("Gagal terhubung atau timeout, restart ESP...");
-        delay(3000);
-        ESP.restart();
-      }
-
-      // Jika berhasil ganti WiFi dari portal, ESP akan otomatis restart oleh WiFiManager
-      // Tapi kita berjaga-jaga panggil restart
-      Serial.println("Berhasil ganti WiFi, restart ESP...");
-      ESP.restart();
+      wmPortal.startConfigPortal("Greenhouse_Cibatu");
+      wifiPortalActive = true;
       return;
     }
     if (strcmp(action, "restart") == 0) {
@@ -537,6 +528,19 @@ void setup() {
 // LOOP UTAMA
 // =============================================
 void loop() {
+  // ====== 0. PROSES ON-DEMAND CONFIG PORTAL ======
+  if (wifiPortalActive) {
+    wmPortal.process();
+    if (WiFi.status() == WL_CONNECTED || !wmPortal.getConfigPortalActive()) {
+      // Portal sudah selesai (berhasil ganti WiFi baru, atau timeout balik ke WiFi lama)
+      wifiPortalActive = false;
+      lcd.clear();
+      lcd.setCursor(0, 0); lcd.print("WiFi Update Selesai");
+      delay(1500);
+      lcd.clear();
+    }
+  }
+
   // Selalu usahakan reconnect ke MQTT jika belum terhubung, tapi jangan sampai ngehang
   reconnectNonBlocking();
   
