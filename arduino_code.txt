@@ -245,22 +245,29 @@ bool getNextSchedule(DateTime now, String &nextTimeStr, String &nextTypeStr) {
   for (int i = 0; i < activeScheduleCount; i++) {
     IrrigationSchedule &s = localSchedules[i];
     if (!s.enabled || strcmp(s.method, "alarm") != 0) continue;
-    for (int dayOffset = 0; dayOffset < 7; dayOffset++) {
+    
+    // Cek dari hari ini (offset 0) sampai minggu depan hari ini (offset 7)
+    for (int dayOffset = 0; dayOffset <= 7; dayOffset++) {
       int checkDay = (currentDay + dayOffset) % 7;
+      
       if (s.days[checkDay]) {
-        int diff = 0;
-        if (dayOffset == 0) {
-          diff = (s.hour * 60 + s.minute) - (now.hour() * 60 + now.minute());
-          if (diff <= 0) diff = (7 * 24 * 60) + diff;
-        } else {
-          diff = (dayOffset * 24 * 60) + (s.hour * 60 + s.minute) - (now.hour() * 60 + now.minute());
+        // Hitung selisih waktu dalam satuan menit dari sekarang
+        int diff = (dayOffset * 24 * 60) + (s.hour * 60 + s.minute) - (now.hour() * 60 + now.minute());
+        
+        // Kita HANYA mencari jadwal yang MASA DEPAN (diff > 0)
+        // Jika diff <= 0, artinya itu jadwal hari ini (dayOffset == 0) yang SUDAH LEWAT.
+        // Maka kita abaikan dan lanjut ke iterasi dayOffset berikutnya (besok dst),
+        // atau jika tidak ada hari aktif lain, nanti akan ketemu lagi di dayOffset == 7 (minggu depan)
+        if (diff > 0) {
+          if (diff < minDiff) {
+            minDiff = diff;
+            bestIdx = i;
+            bestDayOffset = dayOffset;
+          }
+          // Setelah menemukan jadwal masa depan terdekat untuk alarm ini, 
+          // berhenti mengecek hari offset lainnya untuk alarm ini
+          break; 
         }
-        if (diff < minDiff) {
-          minDiff = diff;
-          bestIdx = i;
-          bestDayOffset = dayOffset;
-        }
-        break;
       }
     }
   }
