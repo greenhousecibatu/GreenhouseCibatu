@@ -117,7 +117,7 @@ function AlarmTab({ schedules, onCreate, onUpdate, onDelete, onToggle, showToast
     const [formData, setFormData] = useState({ name: '', type: 'water', duration: 5, days: [] });
     
     const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const dayLetters = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    const dayLetters = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
     
     // Helper untuk menampilkan hari di card
     const getIndoDay = (enDay) => {
@@ -189,7 +189,7 @@ function AlarmTab({ schedules, onCreate, onUpdate, onDelete, onToggle, showToast
                                 <button key={day} type="button" onClick={() => {
                                     const days = formData.days.includes(day) ? formData.days.filter(d => d !== day) : [...formData.days, day];
                                     setFormData({...formData, days});
-                                }} className={`flex-1 py-2 sm:py-3 rounded-xl text-[10px] sm:text-sm font-bold flex items-center justify-center transition-colors ${formData.days.includes(day) ? 'bg-primary text-white shadow-md' : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-variant/50'}`}>
+                                }} className={`flex-1 py-2 sm:py-3 rounded-xl text-sm sm:text-base font-bold flex items-center justify-center transition-colors ${formData.days.includes(day) ? 'bg-primary text-white shadow-md' : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-variant/50'}`}>
                                     {dayLetters[i]}
                                 </button>
                             ))}
