@@ -46,6 +46,8 @@ export const MqttService = {
             topicsToSub.push('greenhouse-cibatu/status/lcd');
             // [BUG FIX 2+4] Subscribe ke status solenoid untuk sinkronisasi realtime
             topicsToSub.push('greenhouse-cibatu/status/solenoids');
+            // [BUG FIX 1 REVISI] Subscribe ke laporan selesai jadwal
+            topicsToSub.push('greenhouse-cibatu/status/execution');
 
             if (topicsToSub.length > 0) {
                 client.subscribe(topicsToSub, (err) => {

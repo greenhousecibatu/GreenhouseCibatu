@@ -99,6 +99,31 @@ export const AppProvider = ({ children }) => {
                         fetchUnreadCount();
                     } catch(e) {}
                 }
+                // [BUG FIX 1 REVISI] Terima laporan selesai jadwal dari ESP32 dan simpan ke DB via API HTTP
+                if (topic === 'greenhouse-cibatu/status/execution') {
+                    try {
+                        const parsed = JSON.parse(message);
+                        // panggil route POST /history di backend
+                        const token = localStorage.getItem('gh_token');
+                        fetch('/api/history', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                            },
+                            body: JSON.stringify(parsed)
+                        }).then(res => {
+                            if (res.ok) {
+                                // Setelah berhasil simpan, refresh riwayat di frontend
+                                fetchHistory();
+                                fetchNotifications();
+                                fetchUnreadCount();
+                            }
+                        });
+                    } catch(e) {
+                        console.error('Gagal memproses laporan eksekusi jadwal', e);
+                    }
+                }
                 // Future: Handle incoming telemetry from ESP32
             },
             (err) => {
