@@ -1,6 +1,7 @@
 #include <WiFi.h>
 #include <WiFiManager.h> // Tambahan untuk pengaturan WiFi lewat HP
 #include <WiFiClientSecure.h>
+#include "esp_wifi.h"    // Fungsi core ESP-IDF untuk reset NVS WiFi
 #define MQTT_MAX_PACKET_SIZE 2048
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
@@ -358,11 +359,23 @@ void callback(char* topic, byte* payload, unsigned int length) {
       lcd.setCursor(0, 0); lcd.print("Reset WiFi...");
       lcd.setCursor(0, 1); lcd.print("Restart ESP32...");
       
-      WiFi.disconnect(true, true); // Hapus memori WiFi internal ESP32 agar amnesia total
-      delay(500);
+      // Putuskan MQTT dulu supaya publish "offline" bersih
+      client.disconnect();
+
+      // Pastikan WiFi dalam mode STA sebelum di-disconnect+erase
+      WiFi.mode(WIFI_STA);
+      delay(100);
+      WiFi.disconnect(true, true); // Hapus memori WiFi internal ESP32
+      delay(300);
+
+      // Lapis WiFiManager (hapus file konfigurasi portal jika ada)
       WiFiManager wm;
-      wm.resetSettings(); // Hapus WiFi tersimpan
-      delay(2000); // Beri waktu 2 detik agar penghapusan tersimpan ke chip memori sebelum mati
+      wm.resetSettings(); 
+      delay(300);
+      
+      // Kunci utama: paksa ESP-IDF menghapus kredensial WiFi di NVS internalnya
+      esp_wifi_restore();
+      delay(1000); // beri waktu tulis ke flash sebelum restart
       
       ESP.restart();       // Reboot → otomatis buka hotspot Greenhouse_Cibatu
       return;
