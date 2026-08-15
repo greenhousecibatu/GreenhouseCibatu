@@ -538,11 +538,13 @@ void loop() {
   // ====== 0. PROSES ON-DEMAND CONFIG PORTAL ======
   if (wifiPortalActive) {
     wmPortal.process();
-    if (WiFi.status() == WL_CONNECTED || !wmPortal.getConfigPortalActive()) {
-      // Portal sudah selesai (berhasil ganti WiFi baru, atau timeout balik ke WiFi lama)
+    // JANGAN cek WiFi.status() == WL_CONNECTED di sini, karena WiFi memang sedang konek!
+    // Kita hanya perlu mengecek apakah portal sudah mati (misal karena timeout 5 menit)
+    if (!wmPortal.getConfigPortalActive()) {
+      Serial.println("Portal WiFi ditutup (Timeout / Selesai).");
       wifiPortalActive = false;
       lcd.clear();
-      lcd.setCursor(0, 0); lcd.print("WiFi Update Selesai");
+      lcd.setCursor(0, 0); lcd.print("Hotspot Ditutup");
       delay(1500);
       lcd.clear();
     }

@@ -117,7 +117,13 @@ function AlarmTab({ schedules, onCreate, onUpdate, onDelete, onToggle, showToast
     const [formData, setFormData] = useState({ name: '', type: 'water', duration: 5, days: [] });
     
     const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const dayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    const dayLetters = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    
+    // Helper untuk menampilkan hari di card
+    const getIndoDay = (enDay) => {
+        const map = { 'Mon':'Sen', 'Tue':'Sel', 'Wed':'Rab', 'Thu':'Kam', 'Fri':'Jum', 'Sat':'Sab', 'Sun':'Min' };
+        return map[enDay] || enDay;
+    };
 
     const handleEdit = (schedule) => {
         const [h, m] = schedule.time.split(':').map(Number);
@@ -178,12 +184,12 @@ function AlarmTab({ schedules, onCreate, onUpdate, onDelete, onToggle, showToast
                     
                     <div>
                         <label className="text-sm font-bold text-outline uppercase mb-2 block">Hari Aktif</label>
-                        <div className="flex gap-2 justify-between">
+                        <div className="flex gap-1 sm:gap-2 justify-between">
                             {dayLabels.map((day, i) => (
                                 <button key={day} type="button" onClick={() => {
                                     const days = formData.days.includes(day) ? formData.days.filter(d => d !== day) : [...formData.days, day];
                                     setFormData({...formData, days});
-                                }} className={`w-10 h-10 rounded-full font-bold flex items-center justify-center transition-colors ${formData.days.includes(day) ? 'bg-primary text-white' : 'bg-surface-container-high text-on-surface-variant'}`}>
+                                }} className={`flex-1 py-2 sm:py-3 rounded-xl text-[10px] sm:text-sm font-bold flex items-center justify-center transition-colors ${formData.days.includes(day) ? 'bg-primary text-white shadow-md' : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-variant/50'}`}>
                                     {dayLetters[i]}
                                 </button>
                             ))}
@@ -495,7 +501,10 @@ function StandardCard({ schedule, onToggle, onDelete, onEdit, customSub }) {
                     <div>
                         <h3 className="font-title-md text-on-surface">{schedule.name}</h3>
                         <p className="text-sm font-bold text-outline">
-                            {customSub ? customSub : schedule.time} {schedule.method === 'alarm' && schedule.days && `• ${schedule.days.map(d=>d[0]).join(', ')}`}
+                            {customSub ? customSub : schedule.time} {schedule.method === 'alarm' && schedule.days && `• ${schedule.days.map(d => {
+                                const map = { 'Mon':'Sen', 'Tue':'Sel', 'Wed':'Rab', 'Thu':'Kam', 'Fri':'Jum', 'Sat':'Sab', 'Sun':'Min' };
+                                return map[d] || d;
+                            }).join(', ')}`}
                         </p>
                     </div>
                 </div>
