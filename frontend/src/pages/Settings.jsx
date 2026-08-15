@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { MqttService } from '../services/mqttService';
 
 export default function Settings({ onLogout }) {
     const { showToast, refreshSemua, authFetch, setIsTourActive, setCurrentPage,
@@ -214,7 +215,6 @@ export default function Settings({ onLogout }) {
                                 return showToast('error', 'MQTT belum terhubung. Hubungkan broker terlebih dahulu.', 'error');
                             }
                             if (window.confirm('PERINGATAN: Reset WiFi ESP32?\n\nAlat akan memutus koneksi WiFi saat ini dan memunculkan hotspot "Greenhouse_Cibatu" untuk konfigurasi ulang.\n\nPastikan Anda berada di dekat alat untuk mengkonfigurasi WiFi baru.')) {
-                                const { default: MqttService } = require('../services/mqttService');
                                 MqttService.publish(mqttConfig.pubTopic, { 
                                     action: 'reset_wifi', 
                                     key: 'GH_SECRET_2026' 
@@ -239,7 +239,6 @@ export default function Settings({ onLogout }) {
                                 return showToast('error', 'MQTT belum terhubung.', 'error');
                             }
                             if (window.confirm('Restart ESP32?\n\nAlat akan mati sebentar dan menyala kembali.')) {
-                                const { default: MqttService } = require('../services/mqttService');
                                 MqttService.publish(mqttConfig.pubTopic, { 
                                     action: 'restart', 
                                     key: 'GH_SECRET_2026' 
@@ -266,7 +265,6 @@ export default function Settings({ onLogout }) {
                             const url = window.prompt('Masukkan Link Raw GitHub file .bin untuk OTA Update:');
                             if (url && url.startsWith('http')) {
                                 if (window.confirm('Mulai proses OTA?\n\nAlat akan mendownload firmware dari link tersebut lalu me-restart dirinya sendiri.')) {
-                                    const { default: MqttService } = require('../services/mqttService');
                                     MqttService.publish(mqttConfig.pubTopic, { 
                                         action: 'update_firmware', 
                                         key: 'GH_SECRET_2026',
