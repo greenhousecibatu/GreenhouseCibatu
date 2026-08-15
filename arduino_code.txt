@@ -9,6 +9,8 @@
 #include <RTClib.h>
 #include <LiquidCrystal_I2C.h>
 #include <Preferences.h> 
+#include <HTTPClient.h>  // Tambahan untuk OTA
+#include <Update.h>      // Tambahan untuk OTA
 
 // --- 1. CONFIGURATION MQTT (PUBLIC SERVER SEPERTI DI WEB) ---
 const char* mqtt_server = "broker.hivemq.com";
@@ -285,6 +287,63 @@ bool getNextSchedule(DateTime now, String &nextTimeStr, String &nextTypeStr) {
 }
 
 // =============================================
+// FUNGSI OTA (OVER THE AIR) UPDATE
+// =============================================
+void performOTA(String url) {
+  Serial.println("🌐 Memulai OTA Update dari: " + url);
+  lcd.clear();
+  lcd.setCursor(0, 0); lcd.print("Update Firmware...");
+  lcd.setCursor(0, 1); lcd.print("Mendownload...");
+
+  HTTPClient http;
+  // Gunakan espClient yang sudah diset Insecure agar bisa mendownload dari https://raw.githubusercontent.com
+  http.begin(espClient, url);
+  
+  int httpCode = http.GET();
+  if (httpCode != HTTP_CODE_OK) {
+    Serial.printf("❌ Gagal download, HTTP Code: %d\n", httpCode);
+    lcd.setCursor(0, 2); lcd.print("Gagal Download!   ");
+    delay(3000);
+    http.end();
+    return;
+  }
+
+  int contentLength = http.getSize();
+  bool canBegin = Update.begin(contentLength);
+
+  if (canBegin) {
+    Serial.println("Menulis ke flash memori...");
+    lcd.setCursor(0, 2); lcd.print("Menulis Memori... ");
+    
+    size_t written = Update.writeStream(http.getStream());
+
+    if (written == contentLength) {
+      Serial.println("✅ OTA Selesai! Ukuran pas.");
+    } else {
+      Serial.printf("❌ OTA Gagal! Tertulis: %d / %d\n", written, contentLength);
+    }
+
+    if (Update.end()) {
+      Serial.println("🔄 OTA Berhasil! Restarting...");
+      lcd.clear();
+      lcd.setCursor(0, 0); lcd.print("Update Sukses!");
+      lcd.setCursor(0, 1); lcd.print("Restarting...");
+      delay(2000);
+      ESP.restart();
+    } else {
+      Serial.printf("❌ Update Error: %s\n", Update.errorString());
+      lcd.setCursor(0, 3); lcd.print("Error Update!     ");
+      delay(3000);
+    }
+  } else {
+    Serial.println("❌ Gagal memulai Update (Partisi tidak cukup?)");
+    lcd.setCursor(0, 3); lcd.print("Gagal Mulai Update");
+    delay(3000);
+  }
+  http.end();
+}
+
+// =============================================
 // CALLBACK MQTT (TERIMA PERINTAH WEB)
 // =============================================
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -385,6 +444,15 @@ void callback(char* topic, byte* payload, unsigned int length) {
       lcd.setCursor(0, 0); lcd.print("Restart ESP32...");
       delay(1000);
       ESP.restart();
+      return;
+    }
+    if (strcmp(action, "update_firmware") == 0) {
+      const char* url = doc["url"] | "";
+      if (strlen(url) > 5) {
+        performOTA(String(url));
+      } else {
+        Serial.println("❌ URL OTA tidak valid/kosong!");
+      }
       return;
     }
     

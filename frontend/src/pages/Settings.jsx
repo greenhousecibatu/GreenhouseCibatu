@@ -250,10 +250,41 @@ export default function Settings({ onLogout }) {
                         className="flex items-center justify-between p-md px-lg w-full hover:bg-surface-container-low transition-colors"
                     >
                         <div className="flex items-center gap-3">
-                            <span className="material-symbols-outlined text-secondary">restart_alt</span>
+                            <span className="material-symbols-outlined text-error" style={{ color: '#EF4444' }}>restart_alt</span>
                             <div className="text-left">
                                 <span className="font-body-sm text-body-sm text-on-surface block">Restart ESP32</span>
-                                <span className="font-label-caps text-[10px] text-outline">Muat ulang alat tanpa reset WiFi</span>
+                                <span className="font-label-caps text-[10px] text-outline">Mulai ulang alat secara paksa</span>
+                            </div>
+                        </div>
+                        <span className="material-symbols-outlined text-outline text-base">chevron_right</span>
+                    </button>
+                    <button
+                        onClick={() => {
+                            if (!mqttConnected) {
+                                return showToast('error', 'MQTT belum terhubung.', 'error');
+                            }
+                            const url = window.prompt('Masukkan Link Raw GitHub file .bin untuk OTA Update:');
+                            if (url && url.startsWith('http')) {
+                                if (window.confirm('Mulai proses OTA?\n\nAlat akan mendownload firmware dari link tersebut lalu me-restart dirinya sendiri.')) {
+                                    const { default: MqttService } = require('../services/mqttService');
+                                    MqttService.publish(mqttConfig.pubTopic, { 
+                                        action: 'update_firmware', 
+                                        key: 'GH_SECRET_2026',
+                                        url: url
+                                    });
+                                    showToast('system_update', 'Perintah OTA Update dikirim. Perhatikan layar LCD ESP32.', 'success');
+                                }
+                            } else if (url !== null) {
+                                showToast('error', 'Link tidak valid. Pastikan diawali http/https.', 'error');
+                            }
+                        }}
+                        className="flex items-center justify-between p-md px-lg w-full hover:bg-surface-container-low transition-colors"
+                    >
+                        <div className="flex items-center gap-3">
+                            <span className="material-symbols-outlined text-primary">system_update_alt</span>
+                            <div className="text-left">
+                                <span className="font-body-sm text-body-sm text-on-surface block">OTA Firmware Update</span>
+                                <span className="font-label-caps text-[10px] text-outline">Update program tanpa kabel via URL</span>
                             </div>
                         </div>
                         <span className="material-symbols-outlined text-outline text-base">chevron_right</span>
