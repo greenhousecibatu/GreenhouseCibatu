@@ -49,41 +49,58 @@ export default function Dashboard() {
                 <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">{getDateStr()}</p>
             </div>
 
+            {/* PWA Install Banner */}
+            {deferredPrompt && (
+                <div className="bg-primary-container text-on-primary-container rounded-2xl p-4 shadow-md flex items-center justify-between border border-primary/20 animate-fade-in">
+                    <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-white/25 flex items-center justify-center shadow-sm">
+                            <span className="material-symbols-outlined text-white" style={{ fontSize: '28px', fontVariationSettings: "'FILL' 1" }}>get_app</span>
+                        </div>
+                        <div>
+                            <h3 className="font-title-sm text-title-sm font-bold">Install Aplikasi</h3>
+                            <p className="font-body-sm text-body-sm opacity-90">Akses lebih cepat & praktis</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={installPwa}
+                        className="bg-primary text-on-primary px-4 py-2 rounded-full font-label-bold text-label-bold hover:shadow-lg transition-all active:scale-95"
+                    >
+                        Install
+                    </button>
+                </div>
+            )}
+
             {/* Connection Status Bar */}
-            <div className={`rounded-2xl p-3.5 border transition-all duration-500 ${
-                mqttConnected && espOnline
+            <div className={`rounded-2xl p-3.5 border transition-all duration-500 ${mqttConnected && espOnline
                     ? 'bg-success/5 border-success/20'
                     : !mqttConnected
                         ? 'bg-error/5 border-error/20'
                         : 'bg-warning/5 border-warning/20'
-            }`}>
+                }`}>
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-500 ${
-                            mqttConnected && espOnline
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-500 ${mqttConnected && espOnline
                                 ? 'bg-success/15'
                                 : !mqttConnected
                                     ? 'bg-error/15'
                                     : 'bg-warning/15'
-                        }`}>
-                            <span className={`material-symbols-outlined text-lg transition-colors duration-500 ${
-                                mqttConnected && espOnline
+                            }`}>
+                            <span className={`material-symbols-outlined text-lg transition-colors duration-500 ${mqttConnected && espOnline
                                     ? 'text-success'
                                     : !mqttConnected
                                         ? 'text-error'
                                         : 'text-warning'
-                            }`} style={{ fontVariationSettings: "'FILL' 1" }}>
+                                }`} style={{ fontVariationSettings: "'FILL' 1" }}>
                                 {mqttConnected && espOnline ? 'cloud_done' : !mqttConnected ? 'cloud_off' : 'cloud_alert'}
                             </span>
                         </div>
                         <div>
-                            <p className={`font-label-bold text-xs transition-colors duration-500 ${
-                                mqttConnected && espOnline
+                            <p className={`font-label-bold text-xs transition-colors duration-500 ${mqttConnected && espOnline
                                     ? 'text-success'
                                     : !mqttConnected
                                         ? 'text-error'
                                         : 'text-warning'
-                            }`}>
+                                }`}>
                                 {mqttConnected && espOnline
                                     ? 'Sistem Terhubung'
                                     : !mqttConnected
@@ -111,26 +128,7 @@ export default function Dashboard() {
                     </div>
                 </div>
             </div>
-            {/* PWA Install Banner */}
-            {deferredPrompt && (
-                <div className="bg-primary-container text-on-primary-container rounded-2xl p-4 shadow-md flex items-center justify-between border border-primary/20 animate-fade-in">
-                    <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-white/25 flex items-center justify-center shadow-sm">
-                            <span className="material-symbols-outlined text-white" style={{ fontSize: '28px', fontVariationSettings: "'FILL' 1" }}>get_app</span>
-                        </div>
-                        <div>
-                            <h3 className="font-title-sm text-title-sm font-bold">Install Aplikasi</h3>
-                            <p className="font-body-sm text-body-sm opacity-90">Akses lebih cepat & praktis</p>
-                        </div>
-                    </div>
-                    <button
-                        onClick={installPwa}
-                        className="bg-primary text-on-primary px-4 py-2 rounded-full font-label-bold text-label-bold hover:shadow-lg transition-all active:scale-95"
-                    >
-                        Install
-                    </button>
-                </div>
-            )}
+
             {/* Solenoid Controls */}
             <div className="space-y-card-gap animate-fade-in">
                 <div className="flex justify-between items-center px-1">
@@ -192,12 +190,10 @@ export default function Dashboard() {
             <div className="space-y-card-gap animate-fade-in">
                 <div className="flex justify-between items-center px-1">
                     <h2 className="font-title-md text-title-md text-on-surface">LCD Monitor</h2>
-                    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-label-bold ${
-                        lcdStatus ? 'bg-success/10 text-success' : 'bg-outline/10 text-outline'
-                    }`}>
-                        <div className={`w-2 h-2 rounded-full ${
-                            lcdStatus ? 'bg-success animate-pulse' : 'bg-outline'
-                        }`}></div>
+                    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-label-bold ${lcdStatus ? 'bg-success/10 text-success' : 'bg-outline/10 text-outline'
+                        }`}>
+                        <div className={`w-2 h-2 rounded-full ${lcdStatus ? 'bg-success animate-pulse' : 'bg-outline'
+                            }`}></div>
                         {lcdStatus ? 'Live' : 'Tidak Ada Sinyal'}
                     </div>
                 </div>
@@ -277,7 +273,7 @@ export default function Dashboard() {
                         <p className="font-body-md text-body-md text-on-surface-variant mb-4">
                             Silakan tentukan berapa lama katup {confirmMode === 'water' ? 'Air' : 'Pupuk'} akan dinyalakan. Alat akan otomatis mati setelah waktu ini habis.
                         </p>
-                        
+
                         <div className="mb-6">
                             <label className="block text-sm font-label-bold text-on-surface mb-2">Durasi Menyala (Menit)</label>
                             <input
@@ -296,7 +292,7 @@ export default function Dashboard() {
                                 Timer akan dihitung dan dikontrol langsung oleh mesin ESP32 secara mandiri, sehingga lebih aman.
                             </p>
                         </div>
-                        
+
                         <div className="flex justify-end gap-3">
                             <button
                                 onClick={() => setConfirmMode(null)}
