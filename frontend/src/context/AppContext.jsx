@@ -49,7 +49,6 @@ export const AppProvider = ({ children }) => {
             mqttConfig,
             () => {
                 setMqttConnected(true);
-                showToast('sensors', 'Terhubung ke MQTT Broker', 'success', true);
             },
             (topic, message) => {
                 console.log('Incoming MQTT:', topic, message);
@@ -57,11 +56,9 @@ export const AppProvider = ({ children }) => {
                 if (topic === mqttConfig.statusTopic) {
                     if (message === 'online') {
                         setEspOnline(true);
-                        showToast('wifi', 'ESP32 Terhubung', 'success', true);
                     } else if (message === 'offline') {
                         setEspOnline(false);
                         setLcdStatus(null); // Reset LCD saat ESP offline
-                        showToast('wifi_off', 'ESP32 Terputus (Offline)', 'error', true);
                     }
                 }
                 // Handle LCD Live Status dari ESP32

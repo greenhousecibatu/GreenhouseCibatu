@@ -29,6 +29,68 @@ export default function Dashboard() {
     return (
         <div className="space-y-6">
 
+            {/* Connection Status Bar */}
+            <div className={`rounded-2xl p-3.5 border transition-all duration-500 ${
+                mqttConnected && espOnline
+                    ? 'bg-success/5 border-success/20'
+                    : !mqttConnected
+                        ? 'bg-error/5 border-error/20'
+                        : 'bg-warning/5 border-warning/20'
+            }`}>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-500 ${
+                            mqttConnected && espOnline
+                                ? 'bg-success/15'
+                                : !mqttConnected
+                                    ? 'bg-error/15'
+                                    : 'bg-warning/15'
+                        }`}>
+                            <span className={`material-symbols-outlined text-lg transition-colors duration-500 ${
+                                mqttConnected && espOnline
+                                    ? 'text-success'
+                                    : !mqttConnected
+                                        ? 'text-error'
+                                        : 'text-warning'
+                            }`} style={{ fontVariationSettings: "'FILL' 1" }}>
+                                {mqttConnected && espOnline ? 'cloud_done' : !mqttConnected ? 'cloud_off' : 'cloud_alert'}
+                            </span>
+                        </div>
+                        <div>
+                            <p className={`font-label-bold text-xs transition-colors duration-500 ${
+                                mqttConnected && espOnline
+                                    ? 'text-success'
+                                    : !mqttConnected
+                                        ? 'text-error'
+                                        : 'text-warning'
+                            }`}>
+                                {mqttConnected && espOnline
+                                    ? 'Sistem Terhubung'
+                                    : !mqttConnected
+                                        ? 'Broker Terputus'
+                                        : 'ESP32 Offline'}
+                            </p>
+                            <p className="font-body-sm text-[10px] text-on-surface-variant mt-0.5">
+                                {mqttConnected && espOnline
+                                    ? 'MQTT & ESP32 aktif — siap menerima perintah'
+                                    : !mqttConnected
+                                        ? 'Hubungkan MQTT di Pengaturan untuk mengontrol alat'
+                                        : 'MQTT terhubung, tapi ESP32 tidak merespon'}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                        <div className="flex flex-col items-center gap-1">
+                            <div className={`w-2.5 h-2.5 rounded-full transition-colors duration-500 ${mqttConnected ? 'bg-success shadow-[0_0_6px_rgba(34,197,94,0.4)]' : 'bg-error shadow-[0_0_6px_rgba(239,68,68,0.4)]'}`}></div>
+                            <span className="text-[8px] font-label-caps text-outline">MQTT</span>
+                        </div>
+                        <div className="flex flex-col items-center gap-1">
+                            <div className={`w-2.5 h-2.5 rounded-full transition-colors duration-500 ${espOnline ? 'bg-success shadow-[0_0_6px_rgba(34,197,94,0.4)]' : 'bg-error shadow-[0_0_6px_rgba(239,68,68,0.4)]'}`}></div>
+                            <span className="text-[8px] font-label-caps text-outline">ESP</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
             {/* PWA Install Banner */}
             {deferredPrompt && (
                 <div className="bg-primary-container text-on-primary-container rounded-2xl p-4 shadow-md flex items-center justify-between border border-primary/20 animate-fade-in">
