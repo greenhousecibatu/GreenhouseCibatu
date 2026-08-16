@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { MqttService } from '../services/mqttService';
+import RealtimeAiAssistant from '../components/RealtimeAiAssistant';
 
 export default function Settings({ onLogout }) {
     const { showToast, refreshSemua, authFetch, setIsTourActive, setCurrentPage,
@@ -8,6 +9,7 @@ export default function Settings({ onLogout }) {
     } = useApp();
 
     const [localMqttConfig, setLocalMqttConfig] = useState(mqttConfig);
+    const [isAiAssistantOpen, setIsAiAssistantOpen] = useState(false);
 
     useEffect(() => {
         setLocalMqttConfig(mqttConfig);
@@ -333,6 +335,34 @@ export default function Settings({ onLogout }) {
                 </div>
             </div>
 
+            {/* Experimental Features */}
+            <div className="space-y-3">
+                <div className="px-1">
+                    <p className="font-label-caps text-label-caps text-outline uppercase tracking-widest">Fitur dalam pengembangan</p>
+                </div>
+                <button
+                    onClick={() => setIsAiAssistantOpen(true)}
+                    className="relative w-full overflow-hidden bg-gradient-to-br from-primary to-[#173f31] text-white rounded-2xl p-lg text-left shadow-lg active:scale-[0.98] transition-all"
+                >
+                    <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/10 blur-sm" />
+                    <div className="relative flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center shrink-0">
+                            <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>graphic_eq</span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-title-md text-title-md">Asisten Greenhouse AI</h3>
+                                <span className="px-2 py-0.5 rounded-full bg-white/15 text-[9px] font-bold tracking-wider">BETA</span>
+                            </div>
+                            <p className="font-body-sm text-body-sm text-white/75">
+                                Ngobrol langsung dengan AI untuk memeriksa dan membuat jadwal secara natural.
+                            </p>
+                        </div>
+                        <span className="material-symbols-outlined text-white/70">arrow_forward</span>
+                    </div>
+                </button>
+            </div>
+
             {/* Logout Button */}
             <button
                 onClick={handleLogout}
@@ -347,6 +377,11 @@ export default function Settings({ onLogout }) {
                 <p className="font-label-bold text-label-bold text-outline">Greenhouse Cibatu v1.0.0</p>
                 <p className="font-label-caps text-label-caps text-outline-variant mt-1">Sistem Irigasi Greenhouse Pintar</p>
             </div>
+
+            <RealtimeAiAssistant
+                isOpen={isAiAssistantOpen}
+                onClose={() => setIsAiAssistantOpen(false)}
+            />
         </div>
     );
 }

@@ -32,6 +32,7 @@ jspm_packages/
 
 # Build output
 dist/
+dev-dist/
 build/
 .next/
 .nuxt/
