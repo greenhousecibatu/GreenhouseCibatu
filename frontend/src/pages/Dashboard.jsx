@@ -6,6 +6,19 @@ export default function Dashboard() {
     const [confirmMode, setConfirmMode] = useState(null);
     const [manualDuration, setManualDuration] = useState(5);
 
+    // Greeting berdasarkan jam
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 11) return 'Selamat Pagi \u{1F331}';
+        if (hour < 15) return 'Selamat Siang \u{2600}\u{FE0F}';
+        if (hour < 18) return 'Selamat Sore \u{1F33F}';
+        return 'Selamat Malam \u{1F319}';
+    };
+
+    const getDateStr = () => {
+        return new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    };
+
     const handleModeClick = (mode) => {
         if (mode === 'off') {
             setManualMode('off');
@@ -27,7 +40,14 @@ export default function Dashboard() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-5">
+
+            {/* Greeting */}
+            <div className="animate-fade-in">
+                <p className="font-label-caps text-label-caps text-outline uppercase tracking-widest mb-1">Pusat Kendali</p>
+                <h1 className="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">{getGreeting()}</h1>
+                <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">{getDateStr()}</p>
+            </div>
 
             {/* Connection Status Bar */}
             <div className={`rounded-2xl p-3.5 border transition-all duration-500 ${
@@ -112,12 +132,12 @@ export default function Dashboard() {
                 </div>
             )}
             {/* Solenoid Controls */}
-            <div className="space-y-card-gap">
+            <div className="space-y-card-gap animate-fade-in">
                 <div className="flex justify-between items-center px-1">
                     <h2 className="font-title-md text-title-md text-on-surface">Kontrol Manual</h2>
                     {mqttConnected && (
-                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-label-bold ${espOnline ? 'bg-success/10 text-success' : 'bg-error/10 text-error'}`}>
-                            <div className={`w-2 h-2 rounded-full ${espOnline ? 'bg-success' : 'bg-error'}`}></div>
+                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full font-label-bold text-label-bold ${espOnline ? 'bg-success/10 text-success' : 'bg-error/10 text-error'}`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${espOnline ? 'bg-success' : 'bg-error'}`}></div>
                             {espOnline ? 'Alat Online' : 'Alat Offline'}
                         </div>
                     )}
@@ -128,7 +148,7 @@ export default function Dashboard() {
                     const currentMode = activeSolenoid ? activeSolenoid.type : 'off';
 
                     return (
-                        <div id="tour-manual-control" className="bg-surface-container-lowest rounded-xl p-4 shadow-sm border border-outline-variant/20 space-y-4">
+                        <div id="tour-manual-control" className="bg-surface-container-lowest rounded-2xl p-md shadow-sm border border-outline-variant/20 space-y-4">
                             <div className="flex items-center gap-4">
                                 <div className={`w-14 h-14 rounded-full flex items-center justify-center ${currentMode === 'water' ? 'bg-primary-fixed text-primary-container' : currentMode === 'fertilizer' ? 'bg-secondary-fixed text-secondary' : 'bg-surface-variant text-on-surface-variant'}`}>
                                     <span className="material-symbols-outlined scale-125" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -143,22 +163,22 @@ export default function Dashboard() {
                                 </div>
                             </div>
 
-                            <div className="w-full flex rounded-lg overflow-hidden border border-outline-variant/30">
+                            <div className="w-full flex rounded-xl overflow-hidden border border-outline-variant/30">
                                 <button
                                     onClick={() => handleModeClick('off')}
-                                    className={`flex-1 py-3 font-label-bold text-center transition-colors ${currentMode === 'off' ? 'bg-error text-white' : 'bg-surface text-on-surface hover:bg-surface-container'}`}
+                                    className={`flex-1 py-3 font-label-bold text-label-bold text-center transition-all active:scale-[0.96] ${currentMode === 'off' ? 'bg-error text-white' : 'bg-surface text-on-surface hover:bg-surface-container'}`}
                                 >
                                     MATI
                                 </button>
                                 <button
                                     onClick={() => handleModeClick('water')}
-                                    className={`flex-1 py-3 font-label-bold text-center transition-colors border-l border-r border-outline-variant/30 ${currentMode === 'water' ? 'bg-primary text-white' : 'bg-surface text-on-surface hover:bg-surface-container'}`}
+                                    className={`flex-1 py-3 font-label-bold text-label-bold text-center transition-all border-l border-r border-outline-variant/30 active:scale-[0.96] ${currentMode === 'water' ? 'bg-primary text-white' : 'bg-surface text-on-surface hover:bg-surface-container'}`}
                                 >
                                     AIR
                                 </button>
                                 <button
                                     onClick={() => handleModeClick('fertilizer')}
-                                    className={`flex-1 py-3 font-label-bold text-center transition-colors ${currentMode === 'fertilizer' ? 'bg-secondary text-white' : 'bg-surface text-on-surface hover:bg-surface-container'}`}
+                                    className={`flex-1 py-3 font-label-bold text-label-bold text-center transition-all active:scale-[0.96] ${currentMode === 'fertilizer' ? 'bg-secondary text-white' : 'bg-surface text-on-surface hover:bg-surface-container'}`}
                                 >
                                     PUPUK
                                 </button>
@@ -169,7 +189,7 @@ export default function Dashboard() {
             </div>
 
             {/* LCD Live Monitor */}
-            <div className="space-y-card-gap">
+            <div className="space-y-card-gap animate-fade-in">
                 <div className="flex justify-between items-center px-1">
                     <h2 className="font-title-md text-title-md text-on-surface">LCD Monitor</h2>
                     <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-label-bold ${
@@ -181,7 +201,7 @@ export default function Dashboard() {
                         {lcdStatus ? 'Live' : 'Tidak Ada Sinyal'}
                     </div>
                 </div>
-                <div className="bg-gray-900 rounded-xl p-4 border border-gray-700 shadow-inner font-mono text-sm">
+                <div className="bg-gray-900 rounded-2xl p-4 border border-gray-700/50 shadow-inner font-mono text-xs">
                     {lcdStatus ? (
                         <div className="space-y-1">
                             {[lcdStatus.line1, lcdStatus.line2, lcdStatus.line3, lcdStatus.line4].map((line, i) => (
@@ -200,7 +220,7 @@ export default function Dashboard() {
             </div>
 
             {/* Aktivitas Terbaru Log */}
-            <div className="space-y-card-gap">
+            <div className="space-y-card-gap animate-fade-in">
                 <div className="flex justify-between items-center px-1">
                     <h2 className="font-title-md text-title-md text-on-surface">Aktivitas Terbaru</h2>
                     <button
@@ -228,7 +248,7 @@ export default function Dashboard() {
                             return (
                                 <div
                                     key={item.id || item._id}
-                                    className={`bg-surface-container-lowest ${stripClass} p-md rounded-r-xl shadow-sm flex items-center justify-between`}
+                                    className={`bg-surface-container-lowest ${stripClass} p-md rounded-r-2xl shadow-sm flex items-center justify-between`}
                                 >
                                     <div className="flex items-center gap-3 flex-1 min-w-0">
                                         {statusIcon}

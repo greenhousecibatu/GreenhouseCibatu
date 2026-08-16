@@ -48,7 +48,7 @@ export default function Header() {
                     <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center">
                         <span className="material-symbols-outlined text-on-primary-container text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>eco</span>
                     </div>
-                    <span className="font-headline-lg-mobile text-headline-lg-mobile font-bold text-primary whitespace-nowrap">Greenhouse Cibatu</span>
+                    <span className="font-title-md text-title-md font-bold text-primary whitespace-nowrap">Greenhouse Cibatu</span>
                 </div>
                 <button
                     id="notifBellBtn"

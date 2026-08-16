@@ -86,14 +86,14 @@ export default {
         "label-caps": ["Manrope"]
       },
       fontSize: {
-        "body-sm": ["14px", { lineHeight: "20px", fontWeight: "400" }],
-        "label-bold": ["12px", { lineHeight: "16px", fontWeight: "700" }],
-        "headline-lg": ["28px", { lineHeight: "36px", fontWeight: "700" }],
-        "headline-lg-mobile": ["24px", { lineHeight: "32px", fontWeight: "700" }],
-        "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
-        "title-md": ["18px", { lineHeight: "24px", fontWeight: "600" }],
-        "display-lg": ["40px", { lineHeight: "48px", letterSpacing: "-0.02em", fontWeight: "700" }],
-        "label-caps": ["10px", { lineHeight: "12px", letterSpacing: "0.05em", fontWeight: "600" }]
+        "body-sm": ["13px", { lineHeight: "18px", fontWeight: "400" }],
+        "label-bold": ["11px", { lineHeight: "14px", fontWeight: "700" }],
+        "headline-lg": ["24px", { lineHeight: "30px", fontWeight: "700" }],
+        "headline-lg-mobile": ["20px", { lineHeight: "26px", fontWeight: "700" }],
+        "body-lg": ["15px", { lineHeight: "22px", fontWeight: "400" }],
+        "title-md": ["15px", { lineHeight: "20px", fontWeight: "600" }],
+        "display-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700" }],
+        "label-caps": ["9px", { lineHeight: "12px", letterSpacing: "0.06em", fontWeight: "600" }]
       }
     },
   },

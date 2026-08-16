@@ -205,7 +205,7 @@ export default function History() {
                                             return (
                                                 <div
                                                     key={item._id || item.id}
-                                                    className={`bg-surface-container-lowest ${stripClass} p-md rounded-r-xl shadow-sm`}
+                                                    className={`bg-surface-container-lowest ${stripClass} p-md rounded-r-2xl shadow-sm`}
                                                 >
                                                     <div className="flex items-start justify-between">
                                                         <div className="flex items-start gap-3 flex-1 min-w-0">

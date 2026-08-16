@@ -54,12 +54,12 @@ export default function Login({ onLogin }) {
                     </div>
                     <div>
                         <h1 className="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-bold">Greenhouse Cibatu</h1>
-                        <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">Smart Irrigation Dashboard</p>
+                        <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">Dashboard Irigasi Pintar</p>
                     </div>
                 </div>
 
                 {/* Login Card */}
-                <form onSubmit={handleSubmit} className="bg-surface-container-lowest rounded-3xl p-8 shadow-lg border border-outline-variant/20 space-y-6">
+                <form onSubmit={handleSubmit} className="bg-surface-container-lowest rounded-2xl p-lg shadow-lg border border-outline-variant/20 space-y-5">
                     <div className="text-center">
                         <h2 className="font-title-md text-title-md text-on-surface">Masuk ke Dashboard</h2>
                         <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">Masukkan password untuk melanjutkan</p>

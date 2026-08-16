@@ -168,7 +168,7 @@ function AlarmTab({ schedules, onCreate, onUpdate, onDelete, onToggle, showToast
             )}
 
             {isCreating && (
-                <div className="bg-surface-container-lowest p-6 rounded-3xl shadow-sm border border-outline-variant/30 space-y-6">
+                <div className="bg-surface-container-lowest p-lg rounded-2xl shadow-sm border border-outline-variant/30 space-y-5 animate-fade-in">
                     <h3 className="font-title-md text-on-surface">{editId ? 'Edit Alarm' : 'Setup Alarm Baru'}</h3>
                     
                     <WheelPicker 
@@ -180,10 +180,10 @@ function AlarmTab({ schedules, onCreate, onUpdate, onDelete, onToggle, showToast
                         onChange={(col, val) => setTimeVal(prev => ({ ...prev, [col]: val }))}
                     />
                     
-                    <input type="text" placeholder="Nama Alarm" className="w-full bg-surface-container-low p-4 rounded-xl text-on-surface outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                    <input type="text" placeholder="Nama Alarm" className="w-full bg-surface-container-low p-3.5 rounded-xl text-on-surface font-body-sm outline-none border border-outline-variant/30 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                     
                     <div>
-                        <label className="text-sm font-bold text-outline uppercase mb-2 block">Hari Aktif</label>
+                        <label className="font-label-bold text-label-bold text-outline uppercase mb-2 block">Hari Aktif</label>
                         <div className="flex gap-1 sm:gap-2 justify-between">
                             {dayLabels.map((day, i) => (
                                 <button key={day} type="button" onClick={() => {
@@ -202,7 +202,7 @@ function AlarmTab({ schedules, onCreate, onUpdate, onDelete, onToggle, showToast
                     </div>
 
                     <div>
-                        <label className="text-sm font-bold text-outline uppercase mb-2 flex justify-between">
+                        <label className="font-label-bold text-label-bold text-outline uppercase mb-2 flex justify-between">
                             <span>Durasi Menyala</span>
                             <span className="text-primary">{formData.duration} Menit</span>
                         </label>
@@ -215,9 +215,9 @@ function AlarmTab({ schedules, onCreate, onUpdate, onDelete, onToggle, showToast
                         />
                     </div>
 
-                    <div className="flex gap-4 pt-4">
-                        <button onClick={resetForm} className="flex-1 py-4 bg-surface-container-high text-on-surface rounded-xl font-bold">Batal</button>
-                        <button onClick={handleSave} className="flex-1 py-4 bg-primary text-white rounded-xl font-bold shadow-lg">Simpan</button>
+                    <div className="flex gap-3 pt-3">
+                        <button onClick={resetForm} className="flex-1 py-3 bg-surface-container-high text-on-surface rounded-xl font-label-bold text-label-bold active:scale-[0.97] transition-all">Batal</button>
+                        <button onClick={handleSave} className="flex-1 py-3 bg-primary text-white rounded-xl font-label-bold text-label-bold shadow-sm active:scale-[0.97] transition-all">Simpan</button>
                     </div>
                 </div>
             )}
@@ -287,7 +287,7 @@ function CountdownTab({ schedules, onCreate, onUpdate, onDelete, onToggle, showT
             )}
 
             {isCreating && (
-                <div className="bg-surface-container-lowest p-6 rounded-3xl shadow-sm border border-outline-variant/30 space-y-6">
+                <div className="bg-surface-container-lowest p-lg rounded-2xl shadow-sm border border-outline-variant/30 space-y-5 animate-fade-in">
                     <h3 className="font-title-md text-on-surface">{editId ? 'Edit Timer Mundur' : 'Setup Timer Mundur'}</h3>
                     
                     <WheelPicker 
@@ -300,16 +300,16 @@ function CountdownTab({ schedules, onCreate, onUpdate, onDelete, onToggle, showT
                         onChange={(col, val) => setTimeVal(prev => ({ ...prev, [col]: val }))}
                     />
                     
-                    <input type="text" placeholder="Nama Timer" className="w-full bg-surface-container-low p-4 rounded-xl text-on-surface outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                    <input type="text" placeholder="Nama Timer" className="w-full bg-surface-container-low p-3.5 rounded-xl text-on-surface font-body-sm outline-none border border-outline-variant/30 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                     
                     <div className="flex gap-2">
                         <button type="button" onClick={() => setFormData({...formData, type: 'water'})} className={`flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 ${formData.type === 'water' ? 'bg-primary-fixed text-primary' : 'bg-surface-container-low text-outline'}`}>Air</button>
                         <button type="button" onClick={() => setFormData({...formData, type: 'fertilizer'})} className={`flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 ${formData.type === 'fertilizer' ? 'bg-secondary-fixed text-secondary' : 'bg-surface-container-low text-outline'}`}>Pupuk</button>
                     </div>
 
-                    <div className="flex gap-4 pt-4">
-                        <button onClick={resetForm} className="flex-1 py-4 bg-surface-container-high text-on-surface rounded-xl font-bold">Batal</button>
-                        <button onClick={handleSave} className="flex-1 py-4 bg-primary text-white rounded-xl font-bold shadow-lg">Simpan</button>
+                    <div className="flex gap-3 pt-3">
+                        <button onClick={resetForm} className="flex-1 py-3 bg-surface-container-high text-on-surface rounded-xl font-label-bold text-label-bold active:scale-[0.97] transition-all">Batal</button>
+                        <button onClick={handleSave} className="flex-1 py-3 bg-primary text-white rounded-xl font-label-bold text-label-bold shadow-sm active:scale-[0.97] transition-all">Simpan</button>
                     </div>
                 </div>
             )}
@@ -443,7 +443,7 @@ function IntervalTab({ schedules, onCreate, onUpdate, onDelete, onToggle, showTo
             )}
 
             {isCreating && (
-                <div className="bg-surface-container-lowest p-6 rounded-3xl shadow-sm border border-outline-variant/30 space-y-6">
+                <div className="bg-surface-container-lowest p-lg rounded-2xl shadow-sm border border-outline-variant/30 space-y-5 animate-fade-in">
                     <h3 className="font-title-md text-on-surface">{editId ? 'Edit Looping Interval' : 'Setup Looping Interval'}</h3>
                     
                     <WheelPicker 
@@ -456,16 +456,16 @@ function IntervalTab({ schedules, onCreate, onUpdate, onDelete, onToggle, showTo
                         onChange={(col, val) => setTimeVal(prev => ({ ...prev, [col]: val }))}
                     />
                     
-                    <input type="text" placeholder="Nama Interval" className="w-full bg-surface-container-low p-4 rounded-xl text-on-surface outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                    <input type="text" placeholder="Nama Interval" className="w-full bg-surface-container-low p-3.5 rounded-xl text-on-surface font-body-sm outline-none border border-outline-variant/30 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                     
                     <div className="flex gap-2">
                         <button type="button" onClick={() => setFormData({...formData, type: 'water'})} className={`flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 ${formData.type === 'water' ? 'bg-primary-fixed text-primary' : 'bg-surface-container-low text-outline'}`}>Air</button>
                         <button type="button" onClick={() => setFormData({...formData, type: 'fertilizer'})} className={`flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 ${formData.type === 'fertilizer' ? 'bg-secondary-fixed text-secondary' : 'bg-surface-container-low text-outline'}`}>Pupuk</button>
                     </div>
 
-                    <div className="flex gap-4 pt-4">
-                        <button onClick={resetForm} className="flex-1 py-4 bg-surface-container-high text-on-surface rounded-xl font-bold">Batal</button>
-                        <button onClick={handleSave} className="flex-1 py-4 bg-primary text-white rounded-xl font-bold shadow-lg">Simpan</button>
+                    <div className="flex gap-3 pt-3">
+                        <button onClick={resetForm} className="flex-1 py-3 bg-surface-container-high text-on-surface rounded-xl font-label-bold text-label-bold active:scale-[0.97] transition-all">Batal</button>
+                        <button onClick={handleSave} className="flex-1 py-3 bg-primary text-white rounded-xl font-label-bold text-label-bold shadow-sm active:scale-[0.97] transition-all">Simpan</button>
                     </div>
                 </div>
             )}
@@ -490,8 +490,8 @@ function StandardCard({ schedule, onToggle, onDelete, onEdit, customSub }) {
     const opacityClass = schedule.enabled ? '' : 'opacity-50';
 
     return (
-        <div className={`bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden ${stripClass} ${opacityClass} relative`}>
-            <div className="p-5 flex justify-between items-center">
+        <div className={`bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden ${stripClass} ${opacityClass} relative`}>
+            <div className="p-md flex justify-between items-center">
                 <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isAir ? 'bg-primary-fixed text-primary' : 'bg-secondary-fixed text-secondary'}`}>
                         <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -500,7 +500,7 @@ function StandardCard({ schedule, onToggle, onDelete, onEdit, customSub }) {
                     </div>
                     <div>
                         <h3 className="font-title-md text-on-surface">{schedule.name}</h3>
-                        <p className="text-sm font-bold text-outline">
+                        <p className="font-body-sm text-body-sm text-outline">
                             {customSub ? customSub : schedule.time} {schedule.method === 'alarm' && schedule.days && `• ${schedule.days.map(d => {
                                 const map = { 'Mon':'Sen', 'Tue':'Sel', 'Wed':'Rab', 'Thu':'Kam', 'Fri':'Jum', 'Sat':'Sab', 'Sun':'Min' };
                                 return map[d] || d;

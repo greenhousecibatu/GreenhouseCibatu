@@ -98,7 +98,7 @@ export default function Settings({ onLogout }) {
             </div>
 
             {/* Notification Preferences */}
-            <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/20 overflow-hidden">
+            <div className="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/20 overflow-hidden">
                 <div className="p-lg border-b border-outline-variant/20">
                     <h3 className="font-title-md text-title-md text-on-surface mb-1">Notifikasi</h3>
                     <p className="font-body-sm text-body-sm text-on-surface-variant">Kelola preferensi peringatan</p>
@@ -144,40 +144,40 @@ export default function Settings({ onLogout }) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block font-label-bold text-label-bold text-on-surface mb-1">Host Broker</label>
-                            <input type="text" name="host" value={localMqttConfig.host} onChange={handleMqttChange} placeholder="broker.hivemq.com" className="w-full bg-surface border border-outline-variant rounded-lg p-2 font-body-sm text-on-surface" />
+                            <input type="text" name="host" value={localMqttConfig.host} onChange={handleMqttChange} placeholder="broker.hivemq.com" className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl p-3 font-body-sm text-on-surface focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none" />
                         </div>
                         <div>
                             <label className="block font-label-bold text-label-bold text-on-surface mb-1">Port WebSocket (SSL)</label>
-                            <input type="text" name="port" value={localMqttConfig.port} onChange={handleMqttChange} placeholder="8884" className="w-full bg-surface border border-outline-variant rounded-lg p-2 font-body-sm text-on-surface" />
-                            <p className="text-[10px] text-outline mt-1">Gunakan 8884 untuk secure (wss), atau 8000 (ws)</p>
+                            <input type="text" name="port" value={localMqttConfig.port} onChange={handleMqttChange} placeholder="8884" className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl p-3 font-body-sm text-on-surface focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none" />
+                            <p className="font-label-caps text-label-caps text-outline mt-1">Gunakan 8884 untuk secure (wss), atau 8000 (ws)</p>
                         </div>
                         <div>
                             <label className="block font-label-bold text-label-bold text-on-surface mb-1">WebSocket Path</label>
-                            <input type="text" name="path" value={localMqttConfig.path} onChange={handleMqttChange} placeholder="/mqtt" className="w-full bg-surface border border-outline-variant rounded-lg p-2 font-body-sm text-on-surface" />
+                            <input type="text" name="path" value={localMqttConfig.path} onChange={handleMqttChange} placeholder="/mqtt" className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl p-3 font-body-sm text-on-surface focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none" />
                         </div>
                         <div>
                             <label className="block font-label-bold text-label-bold text-on-surface mb-1">Client ID</label>
-                            <input type="text" name="clientId" value={localMqttConfig.clientId} onChange={handleMqttChange} placeholder="Acak otomatis jika kosong" className="w-full bg-surface border border-outline-variant rounded-lg p-2 font-body-sm text-on-surface" />
+                            <input type="text" name="clientId" value={localMqttConfig.clientId} onChange={handleMqttChange} placeholder="Acak otomatis jika kosong" className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl p-3 font-body-sm text-on-surface focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none" />
                         </div>
                         <div>
                             <label className="block font-label-bold text-label-bold text-on-surface mb-1">Username (Opsional)</label>
-                            <input type="text" name="username" value={localMqttConfig.username} onChange={handleMqttChange} placeholder="Kosongkan jika publik" className="w-full bg-surface border border-outline-variant rounded-lg p-2 font-body-sm text-on-surface" />
+                            <input type="text" name="username" value={localMqttConfig.username} onChange={handleMqttChange} placeholder="Kosongkan jika publik" className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl p-3 font-body-sm text-on-surface focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none" />
                         </div>
                         <div>
                             <label className="block font-label-bold text-label-bold text-on-surface mb-1">Password (Opsional)</label>
-                            <input type="password" name="password" value={localMqttConfig.password} onChange={handleMqttChange} placeholder="Kosongkan jika publik" className="w-full bg-surface border border-outline-variant rounded-lg p-2 font-body-sm text-on-surface" />
+                            <input type="password" name="password" value={localMqttConfig.password} onChange={handleMqttChange} placeholder="Kosongkan jika publik" className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl p-3 font-body-sm text-on-surface focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none" />
                         </div>
                         <div>
                             <label className="block font-label-bold text-label-bold text-on-surface mb-1">Topik Sub Telemetri</label>
-                            <input type="text" name="subTopic" value={localMqttConfig.subTopic} onChange={handleMqttChange} placeholder="greenhouse-cibatu/sensor/telemetry" className="w-full bg-surface border border-outline-variant rounded-lg p-2 font-body-sm text-on-surface" />
+                            <input type="text" name="subTopic" value={localMqttConfig.subTopic} onChange={handleMqttChange} placeholder="greenhouse-cibatu/sensor/telemetry" className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl p-3 font-body-sm text-on-surface focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none" />
                         </div>
                         <div>
                             <label className="block font-label-bold text-label-bold text-on-surface mb-1">Topik Pub Irigasi</label>
-                            <input type="text" name="pubTopic" value={localMqttConfig.pubTopic} onChange={handleMqttChange} placeholder="greenhouse-cibatu/irigasi/kontrol/command" className="w-full bg-surface border border-outline-variant rounded-lg p-2 font-body-sm text-on-surface" />
+                            <input type="text" name="pubTopic" value={localMqttConfig.pubTopic} onChange={handleMqttChange} placeholder="greenhouse-cibatu/irigasi/kontrol/command" className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl p-3 font-body-sm text-on-surface focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none" />
                         </div>
                         <div className="md:col-span-2">
                             <label className="block font-label-bold text-label-bold text-on-surface mb-1">Topik Status Alat (LWT)</label>
-                            <input type="text" name="statusTopic" value={localMqttConfig.statusTopic} onChange={handleMqttChange} placeholder="greenhouse-cibatu/status" className="w-full bg-surface border border-outline-variant rounded-lg p-2 font-body-sm text-on-surface" />
+                            <input type="text" name="statusTopic" value={localMqttConfig.statusTopic} onChange={handleMqttChange} placeholder="greenhouse-cibatu/status" className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl p-3 font-body-sm text-on-surface focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none" />
                         </div>
                     </div>
                     
@@ -190,11 +190,11 @@ export default function Settings({ onLogout }) {
                         </div>
                         <div className="flex gap-2">
                             {mqttConnected && (
-                                <button onClick={disconnectMqtt} className="px-4 py-2 border border-outline-variant text-on-surface rounded-lg font-label-bold hover:bg-surface-variant transition-colors">
+                                <button onClick={disconnectMqtt} className="px-4 py-2.5 border border-outline-variant text-on-surface rounded-xl font-label-bold text-label-bold hover:bg-surface-variant transition-all active:scale-[0.97]">
                                     Putuskan
                                 </button>
                             )}
-                            <button onClick={handleSaveAndConnect} className="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-bold hover:bg-primary/90 transition-colors shadow-sm">
+                            <button onClick={handleSaveAndConnect} className="px-4 py-2.5 bg-primary text-on-primary rounded-xl font-label-bold text-label-bold hover:bg-primary/90 transition-all shadow-sm active:scale-[0.97]">
                                 {mqttConnected ? 'Perbarui & Reconnect' : 'Hubungkan Broker'}
                             </button>
                         </div>
@@ -336,7 +336,7 @@ export default function Settings({ onLogout }) {
             {/* Logout Button */}
             <button
                 onClick={handleLogout}
-                className="w-full flex items-center justify-center gap-2 py-4 bg-error/10 text-error rounded-xl font-title-md hover:bg-error/20 transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-3.5 bg-error/10 text-error rounded-2xl font-title-md hover:bg-error/20 transition-all active:scale-[0.98]"
             >
                 <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>logout</span>
                 Keluar
