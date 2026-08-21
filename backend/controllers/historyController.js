@@ -36,7 +36,7 @@ const HistoryController = {
             // Simpan riwayat (dengan deduplikasi)
             const result = await HistoryModel.create({
                 type: type || 'water',
-                action: `Jadwal ${typeName} Selesai: ${name || 'Tanpa Nama'}`,
+                action: `Jadwal ${typeName} Dimulai: ${name || 'Tanpa Nama'}`,
                 detail: `Otomatis via Jadwal (${method || 'alarm'})`,
                 duration: durationStr,
                 status: 'success'
@@ -46,8 +46,8 @@ const HistoryController = {
             if (!result.isDuplicate) {
                 await NotificationModel.create({
                     type: 'success',
-                    title: `✅ Jadwal ${typeName} Selesai`,
-                    message: `"${name || 'Jadwal'}" berhasil dijalankan selama ${durationStr}.`
+                    title: `🌱 Jadwal ${typeName} Dimulai`,
+                    message: `"${name || 'Jadwal'}" sedang berjalan. Durasi: ${durationStr}.`
                 });
             }
 

@@ -745,37 +745,8 @@ void loop() {
       delay(500);
       digitalWrite(BUZZER_PIN, LOW);
 
-      // Laporkan eksekusi jadwal selesai ke backend via MQTT (atau simpan ke antrean offline)
-      if (strlen(runningScheduleName) > 0) {
-        if (client.connected()) {
-          char execPayload[128];
-          snprintf(execPayload, sizeof(execPayload),
-            "{\"name\":\"%s\",\"type\":\"%s\",\"method\":\"%s\",\"duration\":%d}",
-            runningScheduleName, runningScheduleType.c_str(), runningScheduleMethod, runningScheduleDuration);
-          client.publish("greenhouse-cibatu/status/execution", execPayload, false);
-          Serial.println("📤 Laporan jadwal selesai dikirim ke backend.");
-        } else {
-          Serial.println("⚠️ OFFLINE! Menabung laporan ke antrean memori ESP32.");
-          // Simpan ke antrean (tumpuk yang paling lama jika penuh)
-          int idx = offlineCount;
-          if (idx >= MAX_OFFLINE_REPORTS) {
-            // Geser semua data ke kiri (buang yang paling tua di index 0)
-            for (int i = 0; i < MAX_OFFLINE_REPORTS - 1; i++) {
-              offlineQueue[i] = offlineQueue[i + 1];
-            }
-            idx = MAX_OFFLINE_REPORTS - 1;
-          } else {
-            offlineCount++;
-          }
-          
-          strncpy(offlineQueue[idx].name, runningScheduleName, sizeof(offlineQueue[idx].name));
-          strncpy(offlineQueue[idx].type, runningScheduleType.c_str(), sizeof(offlineQueue[idx].type));
-          strncpy(offlineQueue[idx].method, runningScheduleMethod, sizeof(offlineQueue[idx].method));
-          offlineQueue[idx].duration = runningScheduleDuration;
-          
-          saveOfflineQueueToNVS();
-        }
-      }
+      // [PERUBAHAN] Laporan history sudah dikirim saat jadwal DIMULAI.
+      // Tidak perlu kirim laporan lagi di sini agar tidak duplikat.
       
       turnOffAll();
       isScheduleRunning = false;
@@ -806,11 +777,40 @@ void loop() {
           runningScheduleType = String(s.type);
           scheduleEndTime = currentUnix + (s.duration * 60);
           manualMode = "SCHEDULE";
-          // Simpan info jadwal untuk laporan selesai nanti
           strlcpy(runningScheduleName, s.name, sizeof(runningScheduleName));
           strlcpy(runningScheduleMethod, s.method, sizeof(runningScheduleMethod));
           runningScheduleDuration = s.duration;
           activateRelay(s.type);
+
+          // [PERUBAHAN] Catat history langsung saat jadwal DIMULAI (bukan saat selesai)
+          // Ini memastikan history tetap tercatat meskipun dimatikan manual sebelum waktunya
+          char execPayload[128];
+          snprintf(execPayload, sizeof(execPayload),
+            "{\"name\":\"%s\",\"type\":\"%s\",\"method\":\"%s\",\"duration\":%d}",
+            s.name, s.type, s.method, s.duration);
+
+          if (client.connected()) {
+            client.publish("greenhouse-cibatu/status/execution", execPayload, false);
+            Serial.println("📤 History jadwal DIMULAI dikirim ke backend.");
+          } else {
+            // Simpan ke antrean offline jika MQTT belum terhubung saat alarm dipicu
+            Serial.println("⚠️ OFFLINE! Laporan mulai jadwal disimpan ke antrean.");
+            int idx = offlineCount;
+            if (idx >= MAX_OFFLINE_REPORTS) {
+              for (int i = 0; i < MAX_OFFLINE_REPORTS - 1; i++) {
+                offlineQueue[i] = offlineQueue[i + 1];
+              }
+              idx = MAX_OFFLINE_REPORTS - 1;
+            } else {
+              offlineCount++;
+            }
+            strncpy(offlineQueue[idx].name, s.name, sizeof(offlineQueue[idx].name));
+            strncpy(offlineQueue[idx].type, s.type, sizeof(offlineQueue[idx].type));
+            strncpy(offlineQueue[idx].method, s.method, sizeof(offlineQueue[idx].method));
+            offlineQueue[idx].duration = s.duration;
+            saveOfflineQueueToNVS();
+          }
+
           lcd.clear();
           break;
         }
