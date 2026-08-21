@@ -10,6 +10,7 @@ Greenhouse Cibatu is a Smart Greenhouse Irrigation Dashboard built to monitor an
 - **Activity History**: Keeps track of completed irrigation cycles, manual toggles, and system alerts.
 - **Notification System**: In-app notifications to track recent activities and alerts.
 - **PWA Ready**: The dashboard can be installed directly onto your mobile device (Android/iOS) as a Progressive Web App.
+- **Gemini Live AI Assistant (Beta)**: Natural speech-to-speech scheduling assistant with clarification, conflict checks, recommendations, and explicit confirmation before saving or deleting a schedule.
 
 ## Tech Stack
 
@@ -44,6 +45,18 @@ The easiest way to run this project is by using Docker. This setup will automati
    http://localhost:5173
    ```
    *(If you are testing the PWA on a mobile device, use your computer's local IP address, e.g., `http://192.168.1.X:5173`)*
+
+### Gemini Live AI Assistant (Beta)
+
+The AI entry point is intentionally placed at the bottom of **Pengaturan → Fitur dalam pengembangan**. Existing manual controls, schedules, and the original voice-command assistant remain unchanged.
+
+1. Copy the variables from `backend/.env.example` into your local backend `.env` or deployment environment.
+2. Set `GEMINI_API_KEY` on the backend. Never expose this key through a `VITE_` variable or frontend code. The backend only returns a single-use, short-lived Gemini Live token.
+3. Optional overrides are `GEMINI_LIVE_MODEL=gemini-3.1-flash-live-preview` and `GEMINI_LIVE_VOICE=Kore`.
+4. Serve the deployed app over HTTPS so the browser can access the microphone and establish the Gemini Live WebSocket connection.
+
+The assistant creates a proposal first, checks active schedules, reads warnings aloud, and only saves after the user explicitly confirms in the next turn. Deletion uses a separate proposal: the assistant identifies one exact schedule, reads its details, and waits for a new explicit confirmation before deleting it.
+Google currently lists this preview model's input and output as free of charge on the Free Tier, subject to project rate limits and preview availability. Free Tier submissions may be used to improve Google's products; review the current Gemini API pricing and data-use terms before production use.
 
 ## Project Structure
 

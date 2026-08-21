@@ -11,6 +11,7 @@ const SolenoidController = require('../controllers/solenoidController');
 const ScheduleController = require('../controllers/scheduleController');
 const HistoryController = require('../controllers/historyController');
 const NotificationController = require('../controllers/notificationController');
+const AiController = require('../controllers/aiController');
 
 // ---- Public Routes (tanpa login) ----
 router.post('/auth/login', AuthController.login);
@@ -29,6 +30,9 @@ router.post('/schedules', authMiddleware, ScheduleController.create);
 router.put('/schedules/:id', authMiddleware, ScheduleController.update);
 router.delete('/schedules/:id', authMiddleware, ScheduleController.delete);
 router.put('/schedules/:id/toggle', authMiddleware, ScheduleController.toggleEnabled);
+
+// Gemini Live AI (API key utama hanya digunakan di backend)
+router.get('/ai/realtime/token', authMiddleware, AiController.createRealtimeToken);
 
 // History
 router.get('/history', authMiddleware, HistoryController.getFiltered);
