@@ -1,7 +1,6 @@
 const mqtt = require('mqtt');
 const ScheduleModel = require('../models/scheduleModel');
-const HistoryModel = require('../models/historyModel');
-const NotificationModel = require('../models/notificationModel');
+const { recordScheduleStart } = require('./scheduleExecutionService');
 
 const MQTT_BROKER = 'mqtts://broker.hivemq.com:8883';
 const SYNC_TOPIC = 'greenhouse-cibatu/schedules/sync'; // Disesuaikan dengan Arduino
@@ -38,6 +37,17 @@ const MqttService = {
                 // ESP32 secara aktif meminta data jadwal terbaru
                 console.log('📥 ESP32 meminta sinkronisasi jadwal...');
                 MqttService.publishSchedules();
+            }
+            if (topic === 'greenhouse-cibatu/status/execution') {
+                try {
+                    const execution = JSON.parse(message.toString());
+                    const result = await recordScheduleStart(execution);
+                    if (!result.isDuplicate) {
+                        console.log(`📝 Riwayat jadwal disimpan: ${execution.name || 'Tanpa Nama'}`);
+                    }
+                } catch (err) {
+                    console.error('Failed to process schedule execution:', err.message);
+                }
             }
         });
 

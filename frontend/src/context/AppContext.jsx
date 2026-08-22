@@ -96,27 +96,16 @@ export const AppProvider = ({ children }) => {
                         fetchUnreadCount();
                     } catch(e) {}
                 }
-                // [BUG FIX 1 REVISI] Terima laporan selesai jadwal dari ESP32 dan simpan ke DB via API HTTP
+                // Backend menyimpan laporan jadwal dari MQTT. Frontend hanya menyegarkan UI.
                 if (topic === 'greenhouse-cibatu/status/execution') {
                     try {
-                        const parsed = JSON.parse(message);
-                        // panggil route POST /history di backend
-                        const token = localStorage.getItem('gh_token');
-                        fetch('/api/history', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                            },
-                            body: JSON.stringify(parsed)
-                        }).then(res => {
-                            if (res.ok) {
-                                // Setelah berhasil simpan, refresh riwayat di frontend
-                                fetchHistory();
-                                fetchNotifications();
-                                fetchUnreadCount();
-                            }
-                        });
+                        JSON.parse(message);
+                        // Tunggu sebentar agar backend menyelesaikan tulis MongoDB terlebih dahulu.
+                        setTimeout(() => {
+                            fetchHistory();
+                            fetchNotifications();
+                            fetchUnreadCount();
+                        }, 300);
                     } catch(e) {
                         console.error('Gagal memproses laporan eksekusi jadwal', e);
                     }

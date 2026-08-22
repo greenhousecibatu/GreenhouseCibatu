@@ -152,7 +152,7 @@ export default function History() {
                         {methodTab === 'manual'
                             ? 'Riwayat kontrol manual akan muncul di sini saat Anda mengoperasikan katup secara langsung.'
                             : methodTab === 'schedule'
-                            ? 'Riwayat penjadwalan otomatis akan muncul saat jadwal selesai dijalankan oleh ESP32.'
+                            ? 'Riwayat penjadwalan otomatis akan muncul saat jadwal mulai dijalankan oleh ESP32.'
                             : 'Aktivitas irigasi dan pemupukan Anda akan muncul di sini.'}
                     </p>
                 </div>

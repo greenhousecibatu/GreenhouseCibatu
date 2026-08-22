@@ -3,7 +3,7 @@
 // =============================================
 
 const HistoryModel = require('../models/historyModel');
-const NotificationModel = require('../models/notificationModel');
+const { recordScheduleStart } = require('../services/scheduleExecutionService');
 
 const HistoryController = {
     getFiltered: async (req, res) => {
@@ -29,27 +29,7 @@ const HistoryController = {
 
     create: async (req, res) => {
         try {
-            const { type, name, method, duration } = req.body;
-            const typeName = type === 'water' ? 'Air' : 'Pupuk';
-            const durationStr = duration ? `${duration} menit` : '—';
-            
-            // Simpan riwayat (dengan deduplikasi)
-            const result = await HistoryModel.create({
-                type: type || 'water',
-                action: `Jadwal ${typeName} Dimulai: ${name || 'Tanpa Nama'}`,
-                detail: `Otomatis via Jadwal (${method || 'alarm'})`,
-                duration: durationStr,
-                status: 'success'
-            });
-
-            // Buat notifikasi HANYA jika riwayat baru benar-benar dibuat (bukan duplikat dari tab lain)
-            if (!result.isDuplicate) {
-                await NotificationModel.create({
-                    type: 'success',
-                    title: `🌱 Jadwal ${typeName} Dimulai`,
-                    message: `"${name || 'Jadwal'}" sedang berjalan. Durasi: ${durationStr}.`
-                });
-            }
+            const result = await recordScheduleStart(req.body);
 
             res.json({ success: true, history: result.record });
         } catch (err) {
